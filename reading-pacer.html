@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading Pacer</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      /* Default: Sweet Mars */
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #252540;
+      --bg-tertiary: #151525;
+      --text-primary: #eee;
+      --text-secondary: #aaa;
+      --text-muted: #888;
+      --accent: #0a84ff;
+      --accent-hover: #0070e0;
+      --border: #3a3a5c;
+      --btn-bg: #3a3a5c;
+      --btn-hover: #4a4a6c;
+      --highlight-read: rgba(100, 200, 100, 0.25);
+      --highlight-current: rgba(255, 200, 0, 0.5);
+      --highlight-current-border: rgba(255, 180, 0, 0.8);
+    }
+
+    /* Catppuccin Mocha */
+    .theme-catppuccin {
+      --bg-primary: #1e1e2e;
+      --bg-secondary: #313244;
+      --bg-tertiary: #181825;
+      --text-primary: #cdd6f4;
+      --text-secondary: #bac2de;
+      --text-muted: #6c7086;
+      --accent: #89b4fa;
+      --accent-hover: #74a8f7;
+      --border: #45475a;
+      --btn-bg: #45475a;
+      --btn-hover: #585b70;
+      --highlight-read: rgba(166, 227, 161, 0.25);
+      --highlight-current: rgba(249, 226, 175, 0.5);
+      --highlight-current-border: rgba(249, 226, 175, 0.8);
+    }
+
+    /* Dracula */
+    .theme-dracula {
+      --bg-primary: #282a36;
+      --bg-secondary: #44475a;
+      --bg-tertiary: #21222c;
+      --text-primary: #f8f8f2;
+      --text-secondary: #d4d4d4;
+      --text-muted: #6272a4;
+      --accent: #bd93f9;
+      --accent-hover: #a77bf3;
+      --border: #44475a;
+      --btn-bg: #44475a;
+      --btn-hover: #6272a4;
+      --highlight-read: rgba(80, 250, 123, 0.25);
+      --highlight-current: rgba(255, 121, 198, 0.4);
+      --highlight-current-border: rgba(255, 121, 198, 0.8);
+    }
+
+    /* Nord */
+    .theme-nord {
+      --bg-primary: #2e3440;
+      --bg-secondary: #3b4252;
+      --bg-tertiary: #272c36;
+      --text-primary: #eceff4;
+      --text-secondary: #d8dee9;
+      --text-muted: #4c566a;
+      --accent: #88c0d0;
+      --accent-hover: #8fbcbb;
+      --border: #4c566a;
+      --btn-bg: #4c566a;
+      --btn-hover: #5e6779;
+      --highlight-read: rgba(163, 190, 140, 0.25);
+      --highlight-current: rgba(235, 203, 139, 0.4);
+      --highlight-current-border: rgba(235, 203, 139, 0.8);
+    }
+
+    /* Gruvbox Dark */
+    .theme-gruvbox {
+      --bg-primary: #282828;
+      --bg-secondary: #3c3836;
+      --bg-tertiary: #1d2021;
+      --text-primary: #ebdbb2;
+      --text-secondary: #d5c4a1;
+      --text-muted: #665c54;
+      --accent: #fe8019;
+      --accent-hover: #d65d0e;
+      --border: #504945;
+      --btn-bg: #504945;
+      --btn-hover: #665c54;
+      --highlight-read: rgba(184, 187, 38, 0.25);
+      --highlight-current: rgba(250, 189, 47, 0.4);
+      --highlight-current-border: rgba(250, 189, 47, 0.8);
+    }
+
+    /* Tokyo Night */
+    .theme-tokyo {
+      --bg-primary: #1a1b26;
+      --bg-secondary: #24283b;
+      --bg-tertiary: #16161e;
+      --text-primary: #c0caf5;
+      --text-secondary: #a9b1d6;
+      --text-muted: #565f89;
+      --accent: #7aa2f7;
+      --accent-hover: #5d87e8;
+      --border: #3b4261;
+      --btn-bg: #3b4261;
+      --btn-hover: #4a5274;
+      --highlight-read: rgba(158, 206, 106, 0.25);
+      --highlight-current: rgba(224, 175, 104, 0.4);
+      --highlight-current-border: rgba(224, 175, 104, 0.8);
+    }
+
+    /* Solarized Dark */
+    .theme-solarized {
+      --bg-primary: #002b36;
+      --bg-secondary: #073642;
+      --bg-tertiary: #00212b;
+      --text-primary: #93a1a1;
+      --text-secondary: #839496;
+      --text-muted: #586e75;
+      --accent: #268bd2;
+      --accent-hover: #1a6fa3;
+      --border: #094959;
+      --btn-bg: #094959;
+      --btn-hover: #0a5a6b;
+      --highlight-read: rgba(133, 153, 0, 0.3);
+      --highlight-current: rgba(181, 137, 0, 0.4);
+      --highlight-current-border: rgba(181, 137, 0, 0.8);
+    }
+
+    body {
+      font-family: 'David', 'Noto Sans Hebrew', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    /* Control Panel */
+    .controls {
+      background: var(--bg-secondary);
+      padding: 16px 24px;
+      border-radius: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    button {
+      background: var(--btn-bg);
+      border: none;
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: var(--btn-hover); }
+    button.active { background: var(--accent); }
+    button.primary { background: var(--accent); }
+    button.primary:hover { background: var(--accent-hover); }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+    }
+
+    input[type="number"], select {
+      width: 70px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    select {
+      width: auto;
+      cursor: pointer;
+    }
+
+    .progress {
+      color: var(--text-muted);
+      font-size: 14px;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .page-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-nav select {
+      width: auto;
+      min-width: 100px;
+    }
+
+    .separator {
+      color: var(--text-muted);
+      margin: 0 4px;
+    }
+
+    /* Text Display */
+    .text-display {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 30px;
+      min-height: 400px;
+      font-size: 22px;
+      line-height: 2;
+      direction: rtl;
+      text-align: right;
+    }
+
+    .word {
+      display: inline;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+    }
+
+    .word:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .highlight-read {
+      background: var(--highlight-read);
+      border-radius: 4px;
+    }
+
+    .highlight-current {
+      background: var(--highlight-current);
+      border-radius: 4px;
+      box-shadow: 0 0 0 2px var(--highlight-current-border);
+    }
+
+    /* Input Area */
+    .input-area {
+      margin-bottom: 20px;
+    }
+
+    .input-area.drag-over textarea {
+      border-color: var(--accent);
+      background: var(--bg-tertiary);
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      direction: rtl;
+    }
+
+    textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    /* File input styling */
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* Settings row */
+    .settings {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* Loading Overlay */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 10000;
+    }
+    #loadingOverlay.active { display: flex; }
+    #loadingText {
+      color: var(--text-primary);
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    #progressBar {
+      width: 300px;
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #progressFill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    /* PDF Helper Modal */
+    #pdfModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10001;
+    }
+    #pdfModal.active { display: flex; }
+    .pdf-modal-content {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 550px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .pdf-modal-content h2 {
+      color: var(--text-primary);
+      margin: 0 0 16px 0;
+      font-size: 24px;
+    }
+    .pdf-modal-content p {
+      color: var(--text-secondary);
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+    .pdf-command-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .pdf-command {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--accent);
+      direction: ltr;
+      text-align: left;
+      word-break: break-all;
+      flex: 1;
+    }
+    .pdf-modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .pdf-steps {
+      text-align: right;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .pdf-steps ol {
+      margin: 0;
+      padding-right: 24px;
+    }
+    .pdf-steps li {
+      margin: 12px 0;
+      color: var(--text-secondary);
+    }
+    .pdf-steps li .pdf-command-row {
+      margin-top: 6px;
+    }
+    .pdf-steps a {
+      color: var(--accent);
+    }
+    .pdf-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: var(--text-muted);
+      margin: 16px 0;
+      transition: all 0.2s;
+    }
+    .pdf-dropzone.drag-over {
+      border-color: var(--accent);
+      background: var(--bg-tertiary);
+      color: var(--accent);
+    }
+    .pdf-filename {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    .pdf-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 4px 0;
+    }
+    .pdf-example-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .pdf-example-row code {
+      background: var(--bg-tertiary);
+      color: var(--accent);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      direction: ltr;
+    }
+    .pdf-example-row button {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .pdf-install-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 16px;
+    }
+    .pdf-install-note a {
+      color: var(--accent);
+    }
+
+    /* Debug Panel */
+    #debugPanel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-primary);
+      border-top: 2px solid var(--border);
+      z-index: 9999;
+      transition: transform 0.2s;
+    }
+    #debugPanel.collapsed { transform: translateY(calc(100% - 32px)); }
+    #debugToggle {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      padding: 6px 16px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      user-select: none;
+    }
+    #debugToggle:hover { background: var(--btn-hover); }
+    #debugLog {
+      height: 180px;
+      overflow-y: auto;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      white-space: pre-wrap;
+      user-select: text;
+    }
+    #debugLog .e { color: #ff6b6b; }
+    #debugLog .w { color: #ffd43b; }
+    #debugLog .i { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📖 Reading Pacer</h1>
+
+    <!-- Input Area -->
+    <div class="input-area" id="inputArea">
+      <textarea id="textInput" placeholder="הדבק טקסט כאן או טען קובץ..."></textarea>
+      <div class="input-buttons">
+        <button class="primary" onclick="loadText()">טען טקסט</button>
+        <div class="file-input-wrapper">
+          <button>טען קובץ</button>
+          <input type="file" accept=".txt,.md,.pdf" onchange="loadFile(event)">
+        </div>
+        <button onclick="loadSampleText()">טקסט לדוגמה</button>
+        <select id="themeSelectInput" onchange="setTheme(this.value)">
+          <option value="">Sweet Mars</option>
+          <option value="theme-catppuccin">Catppuccin</option>
+          <option value="theme-dracula">Dracula</option>
+          <option value="theme-nord">Nord</option>
+          <option value="theme-gruvbox">Gruvbox</option>
+          <option value="theme-tokyo">Tokyo Night</option>
+          <option value="theme-solarized">Solarized</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls" id="controls" style="display: none;">
+      <button onclick="backToInput()">↩ חזור</button>
+
+      <!-- Page Navigation -->
+      <div class="page-nav" id="pageNav" style="display: none;">
+        <button onclick="prevPage()" title="עמוד קודם">⏮ עמוד</button>
+        <select id="pageSelect" onchange="goToPage(this.value)"></select>
+        <button onclick="nextPage()" title="עמוד הבא">עמוד ⏭</button>
+      </div>
+
+      <span class="separator">|</span>
+
+      <button onclick="prevChunk()">→ הקודם</button>
+      <button class="primary" onclick="nextChunk()">הבא ←</button>
+      <button id="autoBtn" onclick="toggleAuto()">▶ אוטומטי</button>
+      <button id="cleanBtn" class="active" onclick="toggleClean()">🧹 נקי</button>
+
+      <div class="settings">
+        <label>
+          <select id="modeSelect" onchange="toggleMode()">
+            <option value="words">מילים</option>
+            <option value="sentences">משפטים</option>
+          </select>
+          <input type="number" id="chunkSize" value="3" min="1" max="20" onchange="updateSettings()">
+        </label>
+        <label>
+          מ/דקה:
+          <input type="number" id="wpm" value="150" min="50" max="500" step="25" onchange="updateSettings()">
+        </label>
+      </div>
+
+      <span class="progress" id="progress">0 / 0</span>
+      <button onclick="reset()">איפוס</button>
+      <select id="themeSelect" onchange="setTheme(this.value)">
+        <option value="">Sweet Mars</option>
+        <option value="theme-catppuccin">Catppuccin</option>
+        <option value="theme-dracula">Dracula</option>
+        <option value="theme-nord">Nord</option>
+        <option value="theme-gruvbox">Gruvbox</option>
+        <option value="theme-tokyo">Tokyo Night</option>
+        <option value="theme-solarized">Solarized</option>
+      </select>
+    </div>
+
+    <!-- Text Display -->
+    <div class="text-display" id="textDisplay" style="display: none;"></div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div id="loadingText">טוען...</div>
+    <div id="progressBar"><div id="progressFill"></div></div>
+  </div>
+
+  <!-- PDF Helper Modal -->
+  <div id="pdfModal">
+    <div class="pdf-modal-content">
+      <h2>📄 קובץ PDF זוהה</h2>
+      <p>דפדפנים לא יכולים לקרוא PDF ישירות. צריך להמיר אותו לטקסט קודם.</p>
+
+      <div class="pdf-steps">
+        <ol>
+          <li><a href="https://www.xpdfreader.com/download.html" target="_blank">התקן את pdftotext</a> (אם עוד לא מותקן)</li>
+          <li>במנהל הקבצים: קליק ימני על התיקייה → "Copy Location/Path" או "העתק מיקום"</li>
+          <li>פתח Terminal / PowerShell / CMD</li>
+          <li>
+            הרץ: <span class="pdf-note">💡 הדבקה בטרמינל: Ctrl+Shift+V</span>
+            <div class="pdf-command-row">
+              <div class="pdf-command" id="cdCommand">cd "המיקום שהעתקת"</div>
+              <button onclick="copyCdCommand()">📋</button>
+            </div>
+          </li>
+          <li>
+            הרץ:
+            <div class="pdf-command-row">
+              <div class="pdf-command">pdftotext "שם הקובץ כולל סיומת"</div>
+              <button onclick="copyPdfCommand()">📋</button>
+            </div>
+            <div class="pdf-example-row">
+              <span>לדוגמה:</span>
+              <code id="pdfCommand">pdftotext "filename.pdf"</code>
+            </div>
+          </li>
+          <li>
+            גרור את קובץ ה-txt שנוצר בתיקייה לכאן:
+            <div class="pdf-dropzone" id="pdfDropzone">
+              גרור לכאן
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="pdf-modal-buttons">
+        <button onclick="closePdfModal()">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debug Panel -->
+  <div id="debugPanel" class="collapsed">
+    <div id="debugToggle">
+      <span onclick="toggleDebug()" style="flex:1;cursor:pointer">🐛 Debug Log <span id="debugArrow">▲</span></span>
+      <span onclick="copyDebugLog()" style="cursor:pointer;padding:0 8px">📋 Copy</span>
+      <span onclick="clearDebugLog()" style="cursor:pointer;padding:0 8px">🗑️ Clear</span>
+    </div>
+    <div id="debugLog"></div>
+  </div>
+
+  <script>
+    // Debug logger
+    const DEBUG = true;
+    function log(msg, level = '') {
+      if (!DEBUG) return;
+      const time = new Date().toLocaleTimeString('en-GB');
+      const logEl = document.getElementById('debugLog');
+      const line = document.createElement('div');
+      line.className = level;
+      line.textContent = `[${time}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    function logState(label) {
+      log(`${label} | idx=${currentIndex} words=${words.length} clean=${useCleanText} chunk=${chunkSize}`, 'i');
+    }
+    function toggleDebug() {
+      const panel = document.getElementById('debugPanel');
+      const arrow = document.getElementById('debugArrow');
+      panel.classList.toggle('collapsed');
+      arrow.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+    }
+    function copyDebugLog() {
+      const logEl = document.getElementById('debugLog');
+      navigator.clipboard.writeText(logEl.innerText).then(() => {
+        log('Log copied to clipboard', 'i');
+      });
+    }
+    function clearDebugLog() {
+      document.getElementById('debugLog').innerHTML = '';
+      log('Log cleared');
+    }
+
+    // Theme management
+    function setTheme(theme) {
+      document.body.className = theme;
+      localStorage.setItem('reading-pacer-theme', theme);
+      document.querySelectorAll('#themeSelect, #themeSelectInput').forEach(el => {
+        if (el) el.value = theme;
+      });
+      log('Theme set: ' + (theme || 'Sweet Mars'));
+    }
+    function loadTheme() {
+      const saved = localStorage.getItem('reading-pacer-theme') || '';
+      document.body.className = saved;
+      document.querySelectorAll('#themeSelect, #themeSelectInput').forEach(el => {
+        if (el) el.value = saved;
+      });
+    }
+    loadTheme();
+    log('Page loaded');
+
+    // Progress overlay functions
+    let lastProgressText = '';
+    let lastProgressTime = 0;
+    function showLoading(text = 'טוען...') {
+      lastProgressText = text;
+      lastProgressTime = 0;
+      document.getElementById('loadingText').textContent = text;
+      document.getElementById('progressFill').style.width = '0%';
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+    function setProgress(percent, text) {
+      document.getElementById('progressFill').style.width = percent + '%';
+      // Throttle text updates to avoid flickering
+      if (text && text !== lastProgressText) {
+        const now = Date.now();
+        if (now - lastProgressTime > 100) { // Only update text every 100ms
+          document.getElementById('loadingText').textContent = text;
+          lastProgressText = text;
+          lastProgressTime = now;
+        }
+      }
+    }
+
+    // Async delay helper
+    function delay(ms = 0) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    let words = [];
+    let currentIndex = 0;
+    let chunkSize = 3;
+    let wpm = 150;
+    let autoAdvance = false;
+    let autoInterval = null;
+    let dirtyText = '';
+    let cleanedText = '';
+    let useCleanText = true;
+
+    // Page tracking (only used when \f detected from pdftotext)
+    let pages = [];           // Array of page objects: { dirtyText, cleanText, words }
+    let currentPage = 0;
+    let hasPages = false;     // True if text has page breaks
+
+    // Sentence mode
+    let sentenceMode = false;
+    let sentences = [];       // Array of { startIdx, endIdx } marking word indices for each sentence
+    let currentSentence = 0;
+
+    // Junk patterns to remove (for Open University / similar PDF watermarks)
+    const cleanPatterns = [
+      { regex: /^[_\-\u200E\u200F\u202A\u202B\u202C\u202D\u202E\s]+$/gm },           // Separator lines
+      { regex: /^.*\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}.*$/gm },                  // Timestamps
+      { regex: /^.*\.indb.*$/gmi },                                                  // InDesign file refs
+      { regex: /^.*do not distribute.*$/gmi },                                       // Distribution warning
+      { regex: /^.*File #\d+\s*belongs to.*$/gmi },                                  // File # watermarks
+      { regex: /^.*\d{6,}.*@.*\.com.*$/gmi },                                        // Email watermarks
+      { regex: /^.*\d{6,}.*\w+at\w+\.com.*$/gmi },                                   // Obfuscated emails
+      { regex: /^[\u200E\u200F\u202A\u202B\u202C\s]*[A-Z]{5,15}[\u200E\u200F\u202A\u202B\u202C\s]*$/gm }, // Random uppercase
+      { regex: /^[\u200E\u200F\u202A\u202B\u202C\s]*\d{1,6}[\u200E\u200F\u202A\u202B\u202C\s]*$/gm },     // Standalone numbers
+      { regex: /^.*\bUntitled\b.*$/gm },                                             // Untitled markers
+      { regex: /^.*0\s*\d{6,}.*$/gm },                                               // Barcode numbers
+      { regex: /^[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s\t]+$/gm }, // RTL marks only
+      // Fix English in brackets: (‪ )word‬ → (word)
+      { regex: /\([\u200E\u200F\u202A\u202B\u202C\s]*\)[\u200E\u200F\u202A\u202B\u202C\s]*([a-zA-Z\s]+)[\u200E\u200F\u202A\u202B\u202C\s]*/g, replacement: '($1) ' },
+      // Clean stray RTL marks around English words
+      { regex: /[\u200E\u200F\u202A\u202B\u202C]+([a-zA-Z])/g, replacement: '$1' },
+      { regex: /([a-zA-Z])[\u200E\u200F\u202A\u202B\u202C]+/g, replacement: '$1' },
+      // Fix Hebrew final letters (pdftotext often misses these)
+      { regex: /מ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ם' },  // mem → final mem
+      { regex: /נ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ן' },  // nun → final nun
+      { regex: /צ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ץ' },  // tsadi → final tsadi
+      { regex: /פ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ף' },  // pe → final pe
+      { regex: /כ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ך' },  // kaf → final kaf
+      { regex: /\n{3,}/g, replacement: '\n\n' },                                     // Multiple blank lines
+    ];
+
+    async function cleanTextAsync(text) {
+      let result = text;
+      const total = cleanPatterns.length;
+      for (let i = 0; i < total; i++) {
+        const p = cleanPatterns[i];
+        if (p.replacement !== undefined) {
+          result = result.replace(p.regex, p.replacement);
+        } else {
+          result = result.replace(p.regex, '');
+        }
+        // Yield to UI every few patterns
+        if (i % 3 === 0) {
+          setProgress(10 + (i / total) * 30, 'מנקה טקסט...');
+          await delay(0);
+        }
+      }
+      return result.trim();
+    }
+
+    async function loadText() {
+      log('loadText() called');
+      const text = document.getElementById('textInput').value.trim();
+      if (!text) return alert('אנא הכנס טקסט');
+
+      showLoading('קורא טקסט...');
+      await delay(10);
+
+      // Check for page breaks (form feed from pdftotext)
+      hasPages = text.includes('\f');
+      log(`hasPages=${hasPages}`);
+
+      if (hasPages) {
+        await loadPagesAsync(text);
+      } else {
+        dirtyText = text;
+        setProgress(10, 'מנקה טקסט...');
+        await delay(0);
+
+        cleanedText = await cleanTextAsync(text);
+        log(`dirty=${dirtyText.length}chars, clean=${cleanedText.length}chars`);
+
+        await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+      }
+      hideLoading();
+    }
+
+    // Process multi-page PDF text
+    async function loadPagesAsync(text) {
+      const rawPages = text.split('\f').filter(p => p.trim().length > 0);
+      log(`Found ${rawPages.length} pages`);
+
+      pages = [];
+      for (let i = 0; i < rawPages.length; i++) {
+        setProgress(10 + (i / rawPages.length) * 30, `מנקה עמוד ${i + 1}/${rawPages.length}...`);
+        await delay(0);
+
+        const dirty = rawPages[i].trim();
+        const clean = await cleanTextAsync(dirty);
+        pages.push({ dirtyText: dirty, cleanText: clean, words: null });
+      }
+
+      currentPage = 0;
+      await initCurrentPage();
+      updatePageNav();
+    }
+
+    // Initialize words for current page
+    async function initCurrentPage() {
+      const page = pages[currentPage];
+      const text = useCleanText ? page.cleanText : page.dirtyText;
+
+      setProgress(50, `מעבד עמוד ${currentPage + 1}...`);
+      await delay(0);
+
+      // Parse words for this page
+      const pageWords = [];
+      const lines = text.split('\n');
+      for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+        const line = lines[lineIdx];
+        const trimmedLine = line.trim();
+
+        if (trimmedLine === '') {
+          if (pageWords.length > 0 && !pageWords[pageWords.length - 1].isParagraph) {
+            pageWords.push({ text: '', isWord: false, isParagraph: true, isLine: false });
+          }
+          continue;
+        }
+
+        if (lineIdx > 0 && pageWords.length > 0 && !pageWords[pageWords.length - 1].isParagraph) {
+          pageWords.push({ text: '', isWord: false, isParagraph: false, isLine: true });
+        }
+
+        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        tokens.forEach(token => {
+          pageWords.push({
+            text: token,
+            isWord: /[\u0590-\u05FFa-zA-Z]/.test(token),
+            isParagraph: false,
+            isLine: false
+          });
+        });
+      }
+
+      words = pageWords;
+      currentIndex = 0;
+
+      // Show UI
+      document.getElementById('inputArea').style.display = 'none';
+      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('textDisplay').style.display = 'block';
+      document.getElementById('pageNav').style.display = hasPages ? 'flex' : 'none';
+
+      setProgress(95, 'מציג טקסט...');
+      await delay(0);
+
+      parseSentences();
+      logState('initCurrentPage done');
+      renderText();
+      updateWordProgress();
+    }
+
+    function updatePageNav() {
+      const select = document.getElementById('pageSelect');
+      select.innerHTML = pages.map((_, i) =>
+        `<option value="${i}" ${i === currentPage ? 'selected' : ''}>עמוד ${i + 1} / ${pages.length}</option>`
+      ).join('');
+    }
+
+    function goToPage(pageIdx) {
+      pageIdx = parseInt(pageIdx);
+      if (pageIdx < 0 || pageIdx >= pages.length) return;
+      if (autoAdvance) toggleAuto();
+      currentPage = pageIdx;
+      initCurrentPage();
+      updatePageNav();
+      log(`Jumped to page ${pageIdx + 1}`);
+    }
+
+    function nextPage() {
+      if (currentPage < pages.length - 1) {
+        goToPage(currentPage + 1);
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 0) {
+        goToPage(currentPage - 1);
+      }
+    }
+
+    async function loadFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // PDF detection - show helper modal
+      if (file.name.match(/\.pdf$/i)) {
+        showPdfModal(file.name);
+        event.target.value = ''; // Reset input
+        return;
+      }
+
+      showLoading('קורא קובץ...');
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        document.getElementById('textInput').value = text;
+
+        // Check for page breaks
+        hasPages = text.includes('\f');
+        log(`loadFile hasPages=${hasPages}`);
+
+        if (hasPages) {
+          await loadPagesAsync(text);
+        } else {
+          dirtyText = text;
+          setProgress(10, 'מנקה טקסט...');
+          await delay(0);
+          cleanedText = await cleanTextAsync(text);
+          await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+        }
+        hideLoading();
+      };
+      reader.readAsText(file);
+    }
+
+    async function loadSampleText() {
+      const sample = `לביולוגיה שמור מקום מיוחד בין המדעים: שכנותיה מצד אחד הן הכימיה והפיזיקה, ומצדה האחר היא גובלת בפסיכולוגיה ובסוציולוגיה. הביולוגיה עוסקת בטווח עצום של תופעות: מתהליכים מולקולריים ועד האבולוציה שבה נוצרו שפע היצורים החיים; מהמנגנונים המתוחכמים להפליא של החיסון, הרבייה, עיבוד המידע וההתנהגות — ועד הקשרים המורכבים שבין כל היצורים החיים לבין סביבתם.`;
+      document.getElementById('textInput').value = sample;
+      dirtyText = sample;
+      cleanedText = await cleanTextAsync(sample);
+      await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+    }
+
+    function toggleClean() {
+      log('toggleClean() called, was=' + useCleanText);
+      useCleanText = !useCleanText;
+      const btn = document.getElementById('cleanBtn');
+      btn.classList.toggle('active', useCleanText);
+      btn.textContent = useCleanText ? '🧹 נקי' : '📄 מקורי';
+
+      // Re-init with same position ratio
+      const ratio = words.length > 0 ? currentIndex / words.length : 0;
+      log(`ratio=${ratio.toFixed(3)}`);
+
+      // Get text based on mode (pages or single)
+      let text;
+      if (hasPages) {
+        text = useCleanText ? pages[currentPage].cleanText : pages[currentPage].dirtyText;
+      } else {
+        text = useCleanText ? cleanedText : dirtyText;
+      }
+
+      // Split by lines, preserving breaks (same as initPacer)
+      words = [];
+      const lines = text.split('\n');
+      lines.forEach((line, lineIdx) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine === '') {
+          if (words.length > 0 && !words[words.length - 1].isParagraph) {
+            words.push({ text: '', isWord: false, isParagraph: true, isLine: false });
+          }
+          return;
+        }
+        if (lineIdx > 0 && words.length > 0 && !words[words.length - 1].isParagraph) {
+          words.push({ text: '', isWord: false, isParagraph: false, isLine: true });
+        }
+        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        tokens.forEach(token => {
+          words.push({
+            text: token,
+            isWord: /[\u0590-\u05FFa-zA-Z]/.test(token),
+            isParagraph: false,
+            isLine: false
+          });
+        });
+      });
+
+      currentIndex = Math.min(Math.floor(ratio * words.length), words.length - 1);
+      currentIndex = Math.max(0, currentIndex);
+
+      logState('after toggleClean');
+      renderText();
+      updateWordProgress();
+    }
+
+    async function initPacerAsync(text) {
+      log('initPacerAsync() called with ' + text.length + ' chars');
+      setProgress(40, 'מפרק לשורות...');
+      await delay(0);
+
+      // Split by lines, preserving both single and double line breaks
+      words = [];
+      const lines = text.split('\n');
+      const totalLines = lines.length;
+
+      for (let lineIdx = 0; lineIdx < totalLines; lineIdx++) {
+        const line = lines[lineIdx];
+        const trimmedLine = line.trim();
+
+        // Empty line = paragraph break (from double newlines)
+        if (trimmedLine === '') {
+          if (words.length > 0 && !words[words.length - 1].isParagraph) {
+            words.push({ text: '', isWord: false, isParagraph: true, isLine: false });
+          }
+          continue;
+        }
+
+        // Add line break before this line (unless first line or after paragraph)
+        if (lineIdx > 0 && words.length > 0 && !words[words.length - 1].isParagraph) {
+          words.push({ text: '', isWord: false, isParagraph: false, isLine: true });
+        }
+
+        // Add words from this line
+        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        tokens.forEach(token => {
+          words.push({
+            text: token,
+            isWord: /[\u0590-\u05FFa-zA-Z]/.test(token),
+            isParagraph: false,
+            isLine: false
+          });
+        });
+
+        // Yield to UI periodically
+        if (lineIdx % 100 === 0) {
+          setProgress(40 + (lineIdx / totalLines) * 50, `מעבד שורה ${lineIdx}/${totalLines}...`);
+          await delay(0);
+        }
+      }
+
+      currentIndex = 0;
+      log('currentIndex set to 0');
+
+      // Update settings
+      chunkSize = parseInt(document.getElementById('chunkSize').value) || 3;
+      wpm = parseInt(document.getElementById('wpm').value) || 150;
+
+      // Hide input, show pacer
+      document.getElementById('inputArea').style.display = 'none';
+      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('textDisplay').style.display = 'block';
+      document.getElementById('pageNav').style.display = 'none'; // No pages for regular text
+
+      setProgress(95, 'מציג טקסט...');
+      await delay(0);
+
+      parseSentences();
+      logState('initPacerAsync done');
+      renderText();
+      updateWordProgress();
+    }
+
+    // Parse sentence boundaries from words array
+    function parseSentences() {
+      sentences = [];
+      let sentenceStart = 0;
+
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        if (!w.isWord && !w.isParagraph && !w.isLine) continue;
+
+        // Check if this word ends a sentence (ends with . ? ! or Hebrew equivalents)
+        if (w.text && /[.?!。？！]$/.test(w.text)) {
+          sentences.push({ startIdx: sentenceStart, endIdx: i + 1 });
+          sentenceStart = i + 1;
+        }
+        // Paragraph breaks also end sentences
+        else if (w.isParagraph && i > sentenceStart) {
+          sentences.push({ startIdx: sentenceStart, endIdx: i });
+          sentenceStart = i + 1;
+        }
+      }
+
+      // Don't forget the last sentence if it doesn't end with punctuation
+      if (sentenceStart < words.length) {
+        sentences.push({ startIdx: sentenceStart, endIdx: words.length });
+      }
+
+      log(`Parsed ${sentences.length} sentences`);
+      currentSentence = 0;
+    }
+
+    function toggleMode() {
+      const mode = document.getElementById('modeSelect').value;
+      sentenceMode = (mode === 'sentences');
+      const chunkInput = document.getElementById('chunkSize');
+      chunkInput.style.display = sentenceMode ? 'none' : 'inline-block';
+
+      if (sentenceMode && sentences.length > 0) {
+        // Find which sentence contains current word
+        currentSentence = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+        if (currentSentence < 0) currentSentence = 0;
+        currentIndex = sentences[currentSentence].startIdx;
+      }
+
+      log(`Mode: ${mode}, sentenceMode=${sentenceMode}`);
+      renderText();
+      updateWordProgress();
+    }
+
+    function joinWithSmartSpacing(wordObjects, startIdx) {
+      return wordObjects.map((w, i) => {
+        const globalIdx = startIdx + i;
+        // Paragraph break (double newline)
+        if (w.isParagraph) {
+          return '<br><br>';
+        }
+        // Line break (single newline)
+        if (w.isLine) {
+          return '<br>';
+        }
+        // Punctuation: just plain text, no span wrapper
+        if (!w.isWord) {
+          return w.text;
+        }
+        // Real word: clickable span with space before (unless first or after break)
+        const span = `<span class="word" onclick="setPosition(${globalIdx})">${w.text}</span>`;
+        const prevIsBreak = i > 0 && (wordObjects[i-1].isParagraph || wordObjects[i-1].isLine);
+        return (i > 0 && !prevIsBreak) ? ' ' + span : span;
+      }).join('');
+    }
+
+    function renderText() {
+      log(`renderText() idx=${currentIndex} words=${words.length} sentenceMode=${sentenceMode}`);
+      const display = document.getElementById('textDisplay');
+      let html = '';
+
+      // Determine current chunk boundaries
+      let currentEnd;
+      if (sentenceMode && sentences.length > 0) {
+        const sent = sentences[currentSentence];
+        currentEnd = sent ? sent.endIdx : words.length;
+      } else {
+        currentEnd = Math.min(currentIndex + chunkSize, words.length);
+      }
+
+      // Group words into: read, current, unread
+      if (currentIndex > 0) {
+        // Read words - continuous highlight
+        const readContent = joinWithSmartSpacing(words.slice(0, currentIndex), 0);
+        html += `<span class="highlight-read">${readContent}</span> `;
+      }
+
+      // Current chunk - continuous highlight
+      if (currentIndex < words.length) {
+        const currentContent = joinWithSmartSpacing(words.slice(currentIndex, currentEnd), currentIndex);
+        html += `<span class="highlight-current" id="currentChunk">${currentContent}</span> `;
+      }
+
+      // Remaining words - no highlight
+      if (currentEnd < words.length) {
+        const remainingContent = joinWithSmartSpacing(words.slice(currentEnd), currentEnd);
+        html += remainingContent;
+      }
+
+      display.innerHTML = html;
+
+      // Scroll current into view
+      const currentEl = document.getElementById('currentChunk');
+      if (currentEl) {
+        currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function setPosition(idx) {
+      currentIndex = idx;
+      if (sentenceMode) {
+        // Find which sentence contains this word
+        currentSentence = sentences.findIndex(s => idx >= s.startIdx && idx < s.endIdx);
+        if (currentSentence < 0) currentSentence = 0;
+        currentIndex = sentences[currentSentence].startIdx;
+      }
+      renderText();
+      updateWordProgress();
+    }
+
+    function nextChunk() {
+      if (sentenceMode) {
+        if (currentSentence < sentences.length - 1) {
+          currentSentence++;
+          currentIndex = sentences[currentSentence].startIdx;
+          renderText();
+          updateWordProgress();
+        } else if (hasPages && currentPage < pages.length - 1) {
+          nextPage();
+        } else if (autoAdvance) {
+          toggleAuto();
+        }
+      } else {
+        if (currentIndex + chunkSize < words.length) {
+          currentIndex += chunkSize;
+          renderText();
+          updateWordProgress();
+        } else if (hasPages && currentPage < pages.length - 1) {
+          nextPage();
+        } else if (autoAdvance) {
+          toggleAuto();
+        }
+      }
+    }
+
+    function prevChunk() {
+      if (sentenceMode) {
+        if (currentSentence > 0) {
+          currentSentence--;
+          currentIndex = sentences[currentSentence].startIdx;
+          renderText();
+          updateWordProgress();
+        } else if (hasPages && currentPage > 0) {
+          currentPage--;
+          initCurrentPage().then(() => {
+            currentSentence = sentences.length - 1;
+            currentIndex = sentences[currentSentence].startIdx;
+            renderText();
+            updateWordProgress();
+            updatePageNav();
+          });
+        }
+      } else if (currentIndex > 0) {
+        currentIndex = Math.max(0, currentIndex - chunkSize);
+        renderText();
+        updateWordProgress();
+      } else if (hasPages && currentPage > 0) {
+        currentPage--;
+        initCurrentPage().then(() => {
+          currentIndex = Math.max(0, words.length - chunkSize);
+          renderText();
+          updateWordProgress();
+          updatePageNav();
+        });
+      }
+    }
+
+    function toggleAuto() {
+      autoAdvance = !autoAdvance;
+      const btn = document.getElementById('autoBtn');
+
+      if (autoAdvance) {
+        btn.classList.add('active');
+        btn.textContent = '⏸ עצור';
+        startAutoAdvance();
+      } else {
+        btn.classList.remove('active');
+        btn.textContent = '▶ אוטומטי';
+        stopAutoAdvance();
+      }
+    }
+
+    function startAutoAdvance() {
+      const interval = (chunkSize / wpm) * 60000;
+      autoInterval = setInterval(nextChunk, interval);
+    }
+
+    function stopAutoAdvance() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+      }
+    }
+
+    function updateSettings() {
+      chunkSize = parseInt(document.getElementById('chunkSize').value) || 3;
+      wpm = parseInt(document.getElementById('wpm').value) || 150;
+
+      if (autoAdvance) {
+        stopAutoAdvance();
+        startAutoAdvance();
+      }
+
+      renderText();
+    }
+
+    function reset() {
+      log('reset() called');
+      currentIndex = 0;
+      if (autoAdvance) toggleAuto();
+
+      // Reset to first page if in page mode
+      if (hasPages && currentPage !== 0) {
+        currentPage = 0;
+        initCurrentPage();
+        updatePageNav();
+        return;
+      }
+
+      logState('after reset');
+      renderText();
+      updateWordProgress();
+    }
+
+    function backToInput() {
+      log('backToInput() called');
+      if (autoAdvance) toggleAuto();
+      document.getElementById('inputArea').style.display = 'block';
+      document.getElementById('controls').style.display = 'none';
+      document.getElementById('textDisplay').style.display = 'none';
+    }
+
+    function updateWordProgress() {
+      let progressText;
+      if (sentenceMode) {
+        progressText = `משפט ${currentSentence + 1} / ${sentences.length}`;
+      } else {
+        progressText = `${currentIndex} / ${words.length}`;
+      }
+      if (hasPages) {
+        progressText += ` | עמ׳ ${currentPage + 1}/${pages.length}`;
+      }
+      document.getElementById('progress').textContent = progressText;
+    }
+
+    // PDF modal functions
+    let currentPdfFilename = '';
+
+    function showPdfModal(filename) {
+      log('showPdfModal() called with: ' + filename, 'i');
+      currentPdfFilename = filename;
+      document.getElementById('pdfCommand').textContent = `pdftotext "${filename}"`;
+      const modal = document.getElementById('pdfModal');
+      log('modal element: ' + (modal ? 'found' : 'NOT FOUND'), modal ? 'i' : 'e');
+      modal.classList.add('active');
+      log('modal classList: ' + modal.classList, 'i');
+      enablePdfDropzone();
+      log('PDF modal opened for: ' + filename, 'i');
+    }
+
+    function closePdfModal() {
+      disablePdfDropzone();
+      document.getElementById('pdfModal').classList.remove('active');
+    }
+
+    function copyPdfCommand() {
+      const command = document.getElementById('pdfCommand').textContent;
+      navigator.clipboard.writeText(command).then(() => {
+        log('Command copied: ' + command, 'i');
+        const btn = event.target;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 1500);
+      });
+    }
+
+    function copyCdCommand() {
+      const command = document.getElementById('cdCommand').textContent;
+      navigator.clipboard.writeText(command).then(() => {
+        log('CD command copied: ' + command, 'i');
+        const btn = event.target;
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 1500);
+      });
+    }
+
+    // Close modal on background click
+    document.getElementById('pdfModal').addEventListener('click', (e) => {
+      if (e.target.id === 'pdfModal') closePdfModal();
+    });
+
+    // PDF modal dropzone handlers (only active when modal is open)
+    async function handlePdfDropzoneDrop(e) {
+      e.preventDefault();
+      document.getElementById('pdfDropzone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+
+      if (!file.name.match(/\.(txt|md)$/i)) {
+        alert('רק קבצי txt או md');
+        return;
+      }
+
+      closePdfModal();
+      showLoading('קורא קובץ...');
+      const text = await file.text();
+      document.getElementById('textInput').value = text;
+
+      hasPages = text.includes('\f');
+      log(`pdfDropzone hasPages=${hasPages}`);
+
+      if (hasPages) {
+        await loadPagesAsync(text);
+      } else {
+        dirtyText = text;
+        setProgress(10, 'מנקה טקסט...');
+        await delay(0);
+        cleanedText = await cleanTextAsync(text);
+        await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+      }
+      hideLoading();
+    }
+
+    function handlePdfDropzoneDragover(e) {
+      e.preventDefault();
+      document.getElementById('pdfDropzone').classList.add('drag-over');
+    }
+
+    function handlePdfDropzoneDragleave(e) {
+      e.preventDefault();
+      document.getElementById('pdfDropzone').classList.remove('drag-over');
+    }
+
+    function enablePdfDropzone() {
+      const dz = document.getElementById('pdfDropzone');
+      dz.addEventListener('dragover', handlePdfDropzoneDragover);
+      dz.addEventListener('dragleave', handlePdfDropzoneDragleave);
+      dz.addEventListener('drop', handlePdfDropzoneDrop);
+    }
+
+    function disablePdfDropzone() {
+      const dz = document.getElementById('pdfDropzone');
+      dz.removeEventListener('dragover', handlePdfDropzoneDragover);
+      dz.removeEventListener('dragleave', handlePdfDropzoneDragleave);
+      dz.removeEventListener('drop', handlePdfDropzoneDrop);
+    }
+
+    // Drag and drop support
+    const inputArea = document.getElementById('inputArea');
+    log('inputArea element: ' + (inputArea ? 'found' : 'NOT FOUND'), inputArea ? 'i' : 'e');
+
+    inputArea.addEventListener('dragover', (e) => {
+      log('dragover fired', 'i');
+      e.preventDefault();
+      inputArea.classList.add('drag-over');
+    });
+    inputArea.addEventListener('dragleave', (e) => {
+      log('dragleave fired', 'i');
+      e.preventDefault();
+      inputArea.classList.remove('drag-over');
+    });
+    inputArea.addEventListener('drop', async (e) => {
+      log('drop fired', 'i');
+      e.preventDefault();
+      inputArea.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      log('file: ' + (file ? file.name : 'no file'), 'i');
+      if (!file) return;
+
+      // PDF detection - show helper modal
+      if (file.name.match(/\.pdf$/i)) {
+        log('PDF detected, calling showPdfModal', 'i');
+        showPdfModal(file.name);
+        log('showPdfModal returned', 'i');
+        return;
+      }
+
+      // Only allow txt/md
+      if (!file.name.match(/\.(txt|md)$/i)) {
+        alert('גרור קובץ txt, md או pdf');
+        return;
+      }
+
+      showLoading('קורא קובץ...');
+      const text = await file.text();
+      document.getElementById('textInput').value = text;
+
+      // Check for page breaks
+      hasPages = text.includes('\f');
+      log(`drop hasPages=${hasPages}`);
+
+      if (hasPages) {
+        await loadPagesAsync(text);
+      } else {
+        dirtyText = text;
+        setProgress(10, 'מנקה טקסט...');
+        await delay(0);
+        cleanedText = await cleanTextAsync(text);
+        await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+      }
+      hideLoading();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+      switch(e.code) {
+        case 'Space':
+        case 'ArrowLeft': // Left = forward in RTL
+          e.preventDefault();
+          nextChunk();
+          break;
+        case 'ArrowRight': // Right = back in RTL
+          e.preventDefault();
+          prevChunk();
+          break;
+        case 'PageDown':
+          e.preventDefault();
+          if (hasPages) nextPage();
+          break;
+        case 'PageUp':
+          e.preventDefault();
+          if (hasPages) prevPage();
+          break;
+        case 'KeyA':
+          toggleAuto();
+          break;
+        case 'KeyR':
+          reset();
+          break;
+      }
+    });
+
+    log('All event listeners initialized', 'i');
+  </script>
+</body>
+</html>
