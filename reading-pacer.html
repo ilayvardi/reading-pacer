@@ -267,6 +267,12 @@
       box-shadow: 0 0 0 2px var(--highlight-current-border);
     }
 
+    .heading {
+      font-weight: bold;
+      text-decoration: underline;
+      font-size: 1.3em;
+    }
+
     /* Top Bar */
     .top-bar {
       position: fixed;
@@ -997,6 +1003,119 @@
     #debugLog .e { color: #ff6b6b; }
     #debugLog .w { color: #ffd43b; }
     #debugLog .i { color: var(--accent); }
+
+    /* Settings Dropdown */
+    .settings-dropdown {
+      position: fixed;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      width: 400px;
+      max-width: 90vw;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      padding: 20px;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .settings-dropdown.open {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .settings-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-section:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .settings-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    .settings-row:last-child {
+      margin-bottom: 0;
+    }
+    .settings-row label {
+      color: var(--text-secondary);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .settings-row select,
+    .settings-row input[type="number"] {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .settings-row select {
+      min-width: 140px;
+    }
+    .settings-row input[type="number"] {
+      width: 70px;
+      text-align: center;
+    }
+    .settings-row input[type="color"] {
+      width: 40px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-tertiary);
+      cursor: pointer;
+      padding: 2px;
+    }
+    .settings-row input[type="range"] {
+      flex: 1;
+      min-width: 100px;
+      accent-color: var(--accent);
+    }
+    .settings-toggle {
+      display: flex;
+      gap: 6px;
+    }
+    .settings-toggle button {
+      padding: 6px 12px;
+      font-size: 13px;
+      min-width: auto;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .settings-toggle button.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .range-value {
+      min-width: 45px;
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -1012,10 +1131,111 @@
     </div>
   </header>
 
+  <!-- Settings Dropdown -->
+  <div class="settings-dropdown" id="settingsDropdown">
+    <!-- Theme -->
+    <div class="settings-section">
+      <h3>סגנון</h3>
+      <div class="settings-row">
+        <label>סגנון:</label>
+        <select id="settingsTheme" onchange="setTheme(this.value)">
+          <option value="">Sweet Mars</option>
+          <option value="theme-catppuccin">Catppuccin</option>
+          <option value="theme-dracula">Dracula</option>
+          <option value="theme-nord">Nord</option>
+          <option value="theme-gruvbox">Gruvbox</option>
+          <option value="theme-tokyo">Tokyo Night</option>
+          <option value="theme-solarized">Solarized</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Font -->
+    <div class="settings-section">
+      <h3>גופן</h3>
+      <div class="settings-row">
+        <label>סוג:</label>
+        <select id="settingsFont">
+          <option value="'David', serif">David</option>
+          <option value="'Noto Sans Hebrew', sans-serif">Noto Sans Hebrew</option>
+          <option value="'Arial', sans-serif">Arial</option>
+          <option value="'Rubik', sans-serif">Rubik</option>
+          <option value="'Heebo', sans-serif">Heebo</option>
+          <option value="'Assistant', sans-serif">Assistant</option>
+          <option value="'Frank Ruhl Libre', serif">Frank Ruhl Libre</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>גודל:</label>
+        <input type="range" id="settingsFontSize" min="14" max="36" value="22">
+        <span class="range-value" id="fontSizeValue">22px</span>
+      </div>
+      <div class="settings-row">
+        <label>עובי:</label>
+        <div class="settings-toggle">
+          <button id="fontWeightNormal" class="active">רגיל</button>
+          <button id="fontWeightBold">מודגש</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spacing -->
+    <div class="settings-section">
+      <h3>ריווח</h3>
+      <div class="settings-row">
+        <label>גובה שורה:</label>
+        <input type="range" id="settingsLineHeight" min="1.2" max="3" step="0.1" value="2">
+        <span class="range-value" id="lineHeightValue">2</span>
+      </div>
+      <div class="settings-row">
+        <label>רווח אותיות:</label>
+        <input type="range" id="settingsLetterSpacing" min="0" max="5" step="0.5" value="0">
+        <span class="range-value" id="letterSpacingValue">0px</span>
+      </div>
+      <div class="settings-row">
+        <label>רווח פסקאות:</label>
+        <input type="range" id="settingsParagraphSpacing" min="0" max="40" step="2" value="16">
+        <span class="range-value" id="paragraphSpacingValue">16px</span>
+      </div>
+    </div>
+
+    <!-- Layout -->
+    <div class="settings-section">
+      <h3>פריסה</h3>
+      <div class="settings-row">
+        <label>שוליים צדדיים:</label>
+        <input type="range" id="settingsMargins" min="10" max="100" step="5" value="30">
+        <span class="range-value" id="marginsValue">30px</span>
+      </div>
+      <div class="settings-row">
+        <label>יישור טקסט:</label>
+        <div class="settings-toggle">
+          <button id="alignRight" class="active">ימין</button>
+          <button id="alignCenter">מרכז</button>
+          <button id="alignJustify">מלא</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Highlights -->
+    <div class="settings-section">
+      <h3>הדגשות</h3>
+      <div class="settings-row">
+        <label>צבע נקרא:</label>
+        <input type="color" id="settingsHighlightRead" value="#64c864">
+      </div>
+      <div class="settings-row">
+        <label>צבע נוכחי:</label>
+        <input type="color" id="settingsHighlightCurrent" value="#ffc800">
+      </div>
+    </div>
+
+  </div>
+
   <div class="container">
 
-    <!-- Drop Zone / Input Area -->
-    <div class="drop-zone" id="inputArea">
+    <!-- Drop Zone / Input Area (hidden by default, shown if no saved state) -->
+    <div class="drop-zone" id="inputArea" style="display: none;">
       <!-- Faded example text as background -->
       <div class="sample-text-bg">
         <p>מה משותף לכל היצורים החיים</p>
@@ -1375,7 +1595,7 @@
     function setTheme(theme) {
       document.body.className = theme;
       localStorage.setItem('reading-pacer-theme', theme);
-      document.querySelectorAll('#themeSelect, #themeSelectInput').forEach(el => {
+      document.querySelectorAll('#themeSelect, #settingsTheme').forEach(el => {
         if (el) el.value = theme;
       });
       log('Theme set: ' + (theme || 'Sweet Mars'));
@@ -1383,7 +1603,7 @@
     function loadTheme() {
       const saved = localStorage.getItem('reading-pacer-theme') || '';
       document.body.className = saved;
-      document.querySelectorAll('#themeSelect, #themeSelectInput').forEach(el => {
+      document.querySelectorAll('#themeSelect, #settingsTheme').forEach(el => {
         if (el) el.value = saved;
       });
     }
@@ -1439,11 +1659,10 @@
       { regex: /^.*\bUntitled\b.*$/gm },                                             // Untitled markers
       { regex: /^.*0\s*\d{6,}.*$/gm },                                               // Barcode numbers
       { regex: /^[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s\t]+$/gm }, // RTL marks only
-      // Fix English in brackets: (‪ )word‬ → (word)
-      { regex: /\([\u200E\u200F\u202A\u202B\u202C\s]*\)[\u200E\u200F\u202A\u202B\u202C\s]*([a-zA-Z\s]+)[\u200E\u200F\u202A\u202B\u202C\s]*/g, replacement: '($1) ' },
-      // Clean stray RTL marks around English words
-      { regex: /[\u200E\u200F\u202A\u202B\u202C]+([a-zA-Z])/g, replacement: '$1' },
-      { regex: /([a-zA-Z])[\u200E\u200F\u202A\u202B\u202C]+/g, replacement: '$1' },
+      // Fix broken parentheses patterns from pdftotext: (‪,)word → (word), (‪ )word → (word)
+      { regex: /\([\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s,]*\)[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s]*([a-zA-Z][a-zA-Z\s-]*)[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069]*/g, replacement: '($1)' },
+      // Strip all RTL/bidi marks from text entirely
+      { regex: /[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069]/g, replacement: '' },
       // Fix Hebrew final letters (pdftotext often misses these)
       { regex: /מ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ם' },  // mem → final mem
       { regex: /נ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ן' },  // nun → final nun
@@ -1554,6 +1773,7 @@
       document.getElementById('textDisplay').style.display = 'block';
 
       parseSentences();
+      markHeadings();
       logState('initCurrentPage done');
       renderText();
       updateWordProgress();
@@ -1568,10 +1788,10 @@
       if (typeof updatePageSlider === 'function') updatePageSlider();
     }
 
-    function goToPage(pageIdx) {
+    function goToPage(pageIdx, keepAutoAdvance = false) {
       pageIdx = parseInt(pageIdx);
       if (pageIdx < 0 || pageIdx >= pages.length) return;
-      if (autoAdvance) toggleAuto();
+      if (autoAdvance && !keepAutoAdvance) toggleAuto();
       currentPage = pageIdx;
       initCurrentPage();
       updatePageNav();
@@ -1620,6 +1840,7 @@
           await initPacerAsync(useCleanText ? cleanedText : dirtyText);
         }
         hideLoading();
+        if (typeof saveState === 'function') saveState();
       };
       reader.readAsText(file);
     }
@@ -1715,6 +1936,7 @@
       currentIndex = Math.min(Math.floor(ratio * words.length), words.length - 1);
       currentIndex = Math.max(0, currentIndex);
 
+      markHeadings();
       logState('after toggleClean');
       renderText();
       updateWordProgress();
@@ -1773,6 +1995,7 @@
       document.getElementById('textDisplay').style.display = 'block';
 
       parseSentences();
+      markHeadings();
       logState('initPacerAsync done');
       renderText();
       updateWordProgress();
@@ -1800,6 +2023,37 @@
 
       log(`Parsed ${sentences.length} sentences`);
       currentSentence = 0;
+    }
+
+    // Mark short paragraphs (2-9 words) as headings
+    function markHeadings() {
+      let paraStart = 0;
+      let headingCount = 0;
+
+      for (let i = 0; i <= words.length; i++) {
+        const w = words[i];
+        const isEnd = !w || w.isParagraph;
+
+        if (isEnd) {
+          // Count actual words in this paragraph
+          let wordCount = 0;
+          for (let j = paraStart; j < i; j++) {
+            if (words[j].isWord) wordCount++;
+          }
+
+          // Mark as heading if 2-9 words
+          if (wordCount >= 2 && wordCount <= 9) {
+            for (let j = paraStart; j < i; j++) {
+              words[j].isHeading = true;
+            }
+            headingCount++;
+          }
+
+          paraStart = i + 1;
+        }
+      }
+
+      log(`Marked ${headingCount} headings`);
     }
 
     function toggleMode() {
@@ -1836,7 +2090,8 @@
           return w.text;
         }
         // Real word: clickable span with space before (unless first or after break)
-        const span = `<span class="word" onclick="setPosition(${globalIdx})">${w.text}</span>`;
+        const headingClass = w.isHeading ? ' heading' : '';
+        const span = `<span class="word${headingClass}" onclick="setPosition(${globalIdx})">${w.text}</span>`;
         const prevIsBreak = i > 0 && (wordObjects[i-1].isParagraph || wordObjects[i-1].isLine);
         return (i > 0 && !prevIsBreak) ? ' ' + span : span;
       }).join('');
@@ -1909,6 +2164,14 @@
       updateWordProgress();
     }
 
+    // Skip over line/paragraph breaks to land on actual words
+    function skipBreaks(idx, direction = 1) {
+      while (idx >= 0 && idx < words.length && (words[idx].isLine || words[idx].isParagraph)) {
+        idx += direction;
+      }
+      return Math.max(0, Math.min(idx, words.length - 1));
+    }
+
     function nextChunk() {
       if (sentenceMode) {
         if (currentSentence + chunkSize < sentences.length) {
@@ -1917,17 +2180,17 @@
           renderText();
           updateWordProgress();
         } else if (hasPages && currentPage < pages.length - 1) {
-          nextPage();
+          goToPage(currentPage + 1, autoAdvance);
         } else if (autoAdvance) {
           toggleAuto();
         }
       } else {
         if (currentIndex + chunkSize < words.length) {
-          currentIndex += chunkSize;
+          currentIndex = skipBreaks(currentIndex + chunkSize, 1);
           renderText();
           updateWordProgress();
         } else if (hasPages && currentPage < pages.length - 1) {
-          nextPage();
+          goToPage(currentPage + 1, autoAdvance);
         } else if (autoAdvance) {
           toggleAuto();
         }
@@ -1952,13 +2215,13 @@
           });
         }
       } else if (currentIndex > 0) {
-        currentIndex = Math.max(0, currentIndex - chunkSize);
+        currentIndex = skipBreaks(Math.max(0, currentIndex - chunkSize), -1);
         renderText();
         updateWordProgress();
       } else if (hasPages && currentPage > 0) {
         currentPage--;
         initCurrentPage().then(() => {
-          currentIndex = Math.max(0, words.length - chunkSize);
+          currentIndex = skipBreaks(Math.max(0, words.length - chunkSize), -1);
           renderText();
           updateWordProgress();
           updatePageNav();
@@ -2069,6 +2332,7 @@
         await initPacerAsync(useCleanText ? cleanedText : dirtyText);
       }
       hideLoading();
+      if (typeof saveState === 'function') saveState();
     }
 
     // Drop prompt toggle functions
@@ -2169,6 +2433,7 @@
         await initPacerAsync(useCleanText ? cleanedText : dirtyText);
       }
       hideLoading();
+      if (typeof saveState === 'function') saveState();
     }
 
     function handlePdfDropzoneDragover(e) {
@@ -2247,6 +2512,7 @@
         await initPacerAsync(useCleanText ? cleanedText : dirtyText);
       }
       hideLoading();
+      if (typeof saveState === 'function') saveState();
     });
 
     // Keyboard shortcuts
@@ -2282,6 +2548,180 @@
 
     log('All event listeners initialized', 'i');
 
+    // Settings dropdown toggle
+    document.getElementById('styleBtn').addEventListener('click', () => {
+      document.getElementById('settingsDropdown').classList.toggle('open');
+    });
+
+    // Close settings when clicking outside
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('settingsDropdown');
+      const styleBtn = document.getElementById('styleBtn');
+      if (dropdown.classList.contains('open') &&
+          !dropdown.contains(e.target) &&
+          !styleBtn.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    // Settings application functions
+    const textDisplay = document.getElementById('textDisplay');
+
+    function applyVisualSettings() {
+      const settings = getVisualSettings();
+
+      // Font
+      textDisplay.style.fontFamily = settings.fontFamily;
+      textDisplay.style.fontSize = settings.fontSize + 'px';
+      textDisplay.style.fontWeight = settings.fontWeight;
+
+      // Spacing
+      textDisplay.style.lineHeight = settings.lineHeight;
+      textDisplay.style.letterSpacing = settings.letterSpacing + 'px';
+
+      // Layout
+      textDisplay.style.paddingLeft = settings.margins + 'px';
+      textDisplay.style.paddingRight = settings.margins + 'px';
+      textDisplay.style.textAlign = settings.textAlign;
+
+      // Highlights (using CSS custom properties)
+      document.documentElement.style.setProperty('--highlight-read', hexToRgba(settings.highlightRead, 0.25));
+      document.documentElement.style.setProperty('--highlight-current', hexToRgba(settings.highlightCurrent, 0.5));
+      document.documentElement.style.setProperty('--highlight-current-border', hexToRgba(settings.highlightCurrent, 0.8));
+
+      // Paragraph spacing (applied via CSS class)
+      document.documentElement.style.setProperty('--paragraph-spacing', settings.paragraphSpacing + 'px');
+
+      saveVisualSettings(settings);
+    }
+
+    function getVisualSettings() {
+      return {
+        fontFamily: document.getElementById('settingsFont').value,
+        fontSize: parseInt(document.getElementById('settingsFontSize').value),
+        fontWeight: document.getElementById('fontWeightBold').classList.contains('active') ? 'bold' : 'normal',
+        lineHeight: parseFloat(document.getElementById('settingsLineHeight').value),
+        letterSpacing: parseFloat(document.getElementById('settingsLetterSpacing').value),
+        paragraphSpacing: parseInt(document.getElementById('settingsParagraphSpacing').value),
+        margins: parseInt(document.getElementById('settingsMargins').value),
+        textAlign: document.getElementById('alignCenter').classList.contains('active') ? 'center' :
+                   document.getElementById('alignJustify').classList.contains('active') ? 'justify' : 'right',
+        highlightRead: document.getElementById('settingsHighlightRead').value,
+        highlightCurrent: document.getElementById('settingsHighlightCurrent').value
+      };
+    }
+
+    function saveVisualSettings(settings) {
+      localStorage.setItem('reading-pacer-visual', JSON.stringify(settings));
+    }
+
+    function loadVisualSettings() {
+      const saved = localStorage.getItem('reading-pacer-visual');
+      if (!saved) return;
+
+      try {
+        const settings = JSON.parse(saved);
+
+        // Apply to form elements
+        if (settings.fontFamily) document.getElementById('settingsFont').value = settings.fontFamily;
+        if (settings.fontSize) {
+          document.getElementById('settingsFontSize').value = settings.fontSize;
+          document.getElementById('fontSizeValue').textContent = settings.fontSize + 'px';
+        }
+        if (settings.fontWeight === 'bold') {
+          document.getElementById('fontWeightNormal').classList.remove('active');
+          document.getElementById('fontWeightBold').classList.add('active');
+        }
+        if (settings.lineHeight) {
+          document.getElementById('settingsLineHeight').value = settings.lineHeight;
+          document.getElementById('lineHeightValue').textContent = settings.lineHeight;
+        }
+        if (settings.letterSpacing !== undefined) {
+          document.getElementById('settingsLetterSpacing').value = settings.letterSpacing;
+          document.getElementById('letterSpacingValue').textContent = settings.letterSpacing + 'px';
+        }
+        if (settings.paragraphSpacing !== undefined) {
+          document.getElementById('settingsParagraphSpacing').value = settings.paragraphSpacing;
+          document.getElementById('paragraphSpacingValue').textContent = settings.paragraphSpacing + 'px';
+        }
+        if (settings.margins) {
+          document.getElementById('settingsMargins').value = settings.margins;
+          document.getElementById('marginsValue').textContent = settings.margins + 'px';
+        }
+        if (settings.textAlign) {
+          document.querySelectorAll('#alignRight, #alignCenter, #alignJustify').forEach(b => b.classList.remove('active'));
+          if (settings.textAlign === 'center') document.getElementById('alignCenter').classList.add('active');
+          else if (settings.textAlign === 'justify') document.getElementById('alignJustify').classList.add('active');
+          else document.getElementById('alignRight').classList.add('active');
+        }
+        if (settings.highlightRead) document.getElementById('settingsHighlightRead').value = settings.highlightRead;
+        if (settings.highlightCurrent) document.getElementById('settingsHighlightCurrent').value = settings.highlightCurrent;
+
+        applyVisualSettings();
+      } catch (e) {
+        log('Failed to load visual settings: ' + e.message, 'e');
+      }
+    }
+
+    function hexToRgba(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Wire up all settings controls
+    document.getElementById('settingsFont').addEventListener('change', applyVisualSettings);
+
+    document.getElementById('settingsFontSize').addEventListener('input', function() {
+      document.getElementById('fontSizeValue').textContent = this.value + 'px';
+      applyVisualSettings();
+    });
+
+    document.getElementById('fontWeightNormal').addEventListener('click', function() {
+      document.getElementById('fontWeightBold').classList.remove('active');
+      this.classList.add('active');
+      applyVisualSettings();
+    });
+    document.getElementById('fontWeightBold').addEventListener('click', function() {
+      document.getElementById('fontWeightNormal').classList.remove('active');
+      this.classList.add('active');
+      applyVisualSettings();
+    });
+
+    document.getElementById('settingsLineHeight').addEventListener('input', function() {
+      document.getElementById('lineHeightValue').textContent = this.value;
+      applyVisualSettings();
+    });
+
+    document.getElementById('settingsLetterSpacing').addEventListener('input', function() {
+      document.getElementById('letterSpacingValue').textContent = this.value + 'px';
+      applyVisualSettings();
+    });
+
+    document.getElementById('settingsParagraphSpacing').addEventListener('input', function() {
+      document.getElementById('paragraphSpacingValue').textContent = this.value + 'px';
+      applyVisualSettings();
+    });
+
+    document.getElementById('settingsMargins').addEventListener('input', function() {
+      document.getElementById('marginsValue').textContent = this.value + 'px';
+      applyVisualSettings();
+    });
+
+    ['alignRight', 'alignCenter', 'alignJustify'].forEach(id => {
+      document.getElementById(id).addEventListener('click', function() {
+        document.querySelectorAll('#alignRight, #alignCenter, #alignJustify').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        applyVisualSettings();
+      });
+    });
+
+    document.getElementById('settingsHighlightRead').addEventListener('input', applyVisualSettings);
+    document.getElementById('settingsHighlightCurrent').addEventListener('input', applyVisualSettings);
+    // Load visual settings on startup
+    loadVisualSettings();
+
     // Sync JS variables from input values (respects browser cache)
     chunkSize = parseInt(document.getElementById('chunkSizeInput').value) || 1;
     wpm = parseInt(document.getElementById('wpmInput').value) || 200;
@@ -2289,8 +2729,92 @@
     document.getElementById('chunkSize').value = chunkSize;
     document.getElementById('wpm').value = wpm;
 
-    // Auto-load sample text on start
-    loadSampleText();
+    // Save state to localStorage
+    function saveState() {
+      const state = {
+        text: document.getElementById('textInput').value,
+        currentPage: currentPage,
+        currentIndex: currentIndex,
+        currentSentence: currentSentence,
+        useCleanText: useCleanText,
+        sentenceMode: sentenceMode
+      };
+      localStorage.setItem('reading-pacer-state', JSON.stringify(state));
+    }
+
+    // Restore state from localStorage
+    async function restoreState() {
+      const saved = localStorage.getItem('reading-pacer-state');
+      if (!saved) {
+        loadSampleText();
+        return;
+      }
+
+      try {
+        const state = JSON.parse(saved);
+        if (!state.text || state.text.trim().length === 0) {
+          loadSampleText();
+          return;
+        }
+
+        showLoading('טוען מסמך קודם...');
+
+        document.getElementById('textInput').value = state.text;
+        useCleanText = state.useCleanText !== undefined ? state.useCleanText : true;
+        sentenceMode = state.sentenceMode || false;
+
+        hasPages = state.text.includes('\f');
+
+        if (hasPages) {
+          await loadPagesAsync(state.text);
+          if (state.currentPage !== undefined && state.currentPage < pages.length) {
+            currentPage = state.currentPage;
+            await initCurrentPage();
+            updatePageNav();
+          }
+        } else {
+          dirtyText = state.text;
+          cleanedText = await cleanTextAsync(state.text);
+          await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+        }
+
+        // Restore position
+        if (state.currentIndex !== undefined) {
+          currentIndex = Math.min(state.currentIndex, words.length - 1);
+        }
+        if (state.currentSentence !== undefined) {
+          currentSentence = Math.min(state.currentSentence, sentences.length - 1);
+        }
+
+        renderText();
+        updateWordProgress();
+        hideLoading();
+        log('State restored from localStorage');
+      } catch (e) {
+        log('Failed to restore state: ' + e.message, 'e');
+        hideLoading();
+        loadSampleText();
+      }
+    }
+
+    // Save state on navigation
+    const originalNextChunk = nextChunk;
+    nextChunk = function() { originalNextChunk(); saveState(); };
+
+    const originalPrevChunk = prevChunk;
+    prevChunk = function() { originalPrevChunk(); saveState(); };
+
+    const originalGoToPage = goToPage;
+    goToPage = function(pageIdx, keepAutoAdvance) { originalGoToPage(pageIdx, keepAutoAdvance); saveState(); };
+
+    const originalSetPosition = setPosition;
+    setPosition = function(idx) {
+      originalSetPosition(idx);
+      saveState();
+    };
+
+    // Restore state on load instead of sample text
+    restoreState();
   </script>
 </body>
 </html>
