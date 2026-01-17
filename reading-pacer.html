@@ -179,6 +179,7 @@
       cursor: pointer;
       font-size: 16px;
       transition: background 0.2s;
+      user-select: none;
     }
 
     button:hover { background: var(--btn-hover); }
@@ -235,9 +236,8 @@
 
     /* Text Display */
     .text-display {
-      background: var(--bg-secondary);
-      border-radius: 12px;
-      padding: 30px;
+      background: transparent;
+      padding: 15px 30px;
       min-height: 400px;
       font-size: 22px;
       line-height: 2;
@@ -721,6 +721,7 @@
       color: var(--text-secondary);
       cursor: pointer;
       transition: background 0.2s;
+      user-select: none;
     }
     .wing:hover {
       background: var(--btn-hover);
@@ -756,6 +757,7 @@
       color: var(--text-secondary);
       cursor: pointer;
       transition: background 0.2s;
+      user-select: none;
     }
     .wing-outer:hover {
       background: var(--btn-hover);
@@ -1063,11 +1065,11 @@
             <option value="words">מילים</option>
             <option value="sentences">משפטים</option>
           </select>
-          <input type="number" id="chunkSize" value="3" min="1" max="20" onchange="updateSettings()">
+          <input type="number" id="chunkSize" value="1" min="1" max="20" onchange="updateSettings()">
         </label>
         <label>
           מ/דקה:
-          <input type="number" id="wpm" value="150" min="50" max="500" step="25" onchange="updateSettings()">
+          <input type="number" id="wpm" value="200" min="50" max="500" step="25" onchange="updateSettings()">
         </label>
       </div>
 
@@ -1161,7 +1163,7 @@
     <div class="bar-inputs">
       <label class="bar-input-group">
         <span>כמות מילים:</span>
-        <input type="number" id="chunkSizeInput" value="3" min="1" max="20">
+        <input type="number" id="chunkSizeInput" value="1" min="1" max="20">
       </label>
       <label class="bar-input-group">
         <span>מילים/דקה:</span>
@@ -1241,14 +1243,28 @@
       const track = document.getElementById('pageSliderTrack');
       let isDragging = false;
 
-      function updateThumbPosition(e) {
+      // Update thumb position based on current page (RTL: right = page 1)
+      window.updatePageSlider = function() {
+        const totalPages = hasPages ? pages.length : 1;
+        const trackWidth = track.offsetWidth;
+        const trackLeft = 24; // padding from left
+        // RTL: page 1 (idx 0) = right side, last page = left side
+        const percent = totalPages > 1 ? (1 - currentPage / (totalPages - 1)) * 100 : 100;
+        thumb.style.left = (trackLeft + (trackWidth * percent / 100)) + 'px';
+        thumb.textContent = `${currentPage + 1}/${totalPages}`;
+      };
+
+      function handleSliderInput(e) {
+        if (!hasPages || pages.length <= 1) return;
         const rect = track.getBoundingClientRect();
         let x = (e.clientX || e.touches[0].clientX) - rect.left;
         let percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
-        // Convert percent to pixel position relative to wrapper
-        const trackLeft = 24; // padding-left of container
-        const trackWidth = track.offsetWidth;
-        thumb.style.left = (trackLeft + (trackWidth * percent / 100)) + 'px';
+        // RTL: right = first page, left = last page (invert percent)
+        const pageIdx = Math.round((1 - percent / 100) * (pages.length - 1));
+        if (pageIdx !== currentPage) {
+          goToPage(pageIdx);
+        }
+        updatePageSlider();
       }
 
       thumb.addEventListener('mousedown', (e) => {
@@ -1260,18 +1276,18 @@
       });
 
       document.addEventListener('mousemove', (e) => {
-        if (isDragging) updateThumbPosition(e);
+        if (isDragging) handleSliderInput(e);
       });
       document.addEventListener('touchmove', (e) => {
-        if (isDragging) updateThumbPosition(e);
+        if (isDragging) handleSliderInput(e);
       });
 
       document.addEventListener('mouseup', () => isDragging = false);
       document.addEventListener('touchend', () => isDragging = false);
 
-      // Click on track to move thumb
+      // Click on track to jump to page
       track.addEventListener('click', (e) => {
-        updateThumbPosition(e);
+        handleSliderInput(e);
       });
     })();
 
@@ -1279,16 +1295,20 @@
     document.getElementById('wordModeBtn').addEventListener('click', function() {
       const chunkLabel = document.querySelector('#chunkSizeInput').previousElementSibling;
       const wpmLabel = document.querySelector('#wpmInput').previousElementSibling;
+      const modeSelect = document.getElementById('modeSelect');
 
       if (this.textContent === 'מצב מילים') {
         this.textContent = 'מצב משפטים';
         chunkLabel.textContent = 'כמות משפטים:';
         wpmLabel.textContent = 'משפטים/דקה:';
+        modeSelect.value = 'sentences';
       } else {
         this.textContent = 'מצב מילים';
         chunkLabel.textContent = 'כמות מילים:';
         wpmLabel.textContent = 'מילים/דקה:';
+        modeSelect.value = 'words';
       }
+      toggleMode();
     });
 
     document.getElementById('cleanTextBtn').addEventListener('click', function() {
@@ -1297,7 +1317,37 @@
       } else {
         this.textContent = 'טקסט נקי';
       }
+      toggleClean();
     });
+
+    // Play button - toggle auto advance
+    document.getElementById('playBtn').addEventListener('click', toggleAuto);
+
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', reset);
+
+    // Bottom bar input sync
+    document.getElementById('chunkSizeInput').addEventListener('change', function() {
+      chunkSize = parseInt(this.value) || 1;
+      document.getElementById('chunkSize').value = chunkSize;
+      renderText();
+    });
+    document.getElementById('wpmInput').addEventListener('change', function() {
+      wpm = parseInt(this.value) || 200;
+      document.getElementById('wpm').value = wpm;
+      if (autoAdvance) {
+        stopAutoAdvance();
+        startAutoAdvance();
+      }
+    });
+
+    // Wings - chunk navigation (inner wings)
+    document.querySelector('.wing-left').addEventListener('click', nextChunk);
+    document.querySelector('.wing-right').addEventListener('click', prevChunk);
+
+    // Outer wings - page navigation
+    document.querySelector('.wing-outer-left').addEventListener('click', nextPage);
+    document.querySelector('.wing-outer-right').addEventListener('click', prevPage);
 
     // Theme management
     function setTheme(theme) {
@@ -1334,8 +1384,8 @@
 
     let words = [];
     let currentIndex = 0;
-    let chunkSize = 3;
-    let wpm = 150;
+    let chunkSize = 1;
+    let wpm = 200;
     let autoAdvance = false;
     let autoInterval = null;
     let dirtyText = '';
@@ -1477,14 +1527,14 @@
 
       // Show UI
       document.getElementById('inputArea').style.display = 'none';
-      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('controls').style.display = 'none';
       document.getElementById('textDisplay').style.display = 'block';
-      document.getElementById('pageNav').style.display = hasPages ? 'flex' : 'none';
 
       parseSentences();
       logState('initCurrentPage done');
       renderText();
       updateWordProgress();
+      if (typeof updatePageSlider === 'function') updatePageSlider();
     }
 
     function updatePageNav() {
@@ -1492,6 +1542,7 @@
       select.innerHTML = pages.map((_, i) =>
         `<option value="${i}" ${i === currentPage ? 'selected' : ''}>עמוד ${i + 1} / ${pages.length}</option>`
       ).join('');
+      if (typeof updatePageSlider === 'function') updatePageSlider();
     }
 
     function goToPage(pageIdx) {
@@ -1551,11 +1602,47 @@
     }
 
     async function loadSampleText() {
-      const sample = `לביולוגיה שמור מקום מיוחד בין המדעים: שכנותיה מצד אחד הן הכימיה והפיזיקה, ומצדה האחר היא גובלת בפסיכולוגיה ובסוציולוגיה. הביולוגיה עוסקת בטווח עצום של תופעות: מתהליכים מולקולריים ועד האבולוציה שבה נוצרו שפע היצורים החיים; מהמנגנונים המתוחכמים להפליא של החיסון, הרבייה, עיבוד המידע וההתנהגות — ועד הקשרים המורכבים שבין כל היצורים החיים לבין סביבתם.`;
+      const sample = `ניסויים מדעיים בביולוגיה
+
+אפשר לערוך מחקרים בדרכים רבות, במיוחד בביולוגיה. יש ביולוגים העורכים סקרים; הם עורכים תצפיות מבלי לנסח השערות. יש המעלים השערות ומותירים את ביצוע הניסויים לאחרים. עם זאת, למרות היקפו הרחב של התחום כולו, ניסויים מדעיים מתוכננים בעקביות באותו אופן.
+
+החוקרים בוחרים בכל פעם במשתנה בלתי־תלוי אחד, מנסים לשנות רק אותו בניסוי ורואים מה קורה בעקבות זאת למשתנה תלוי יחיד. כדי להמחיש כיצד נעשים ניסויים בביולוגיה אנו מסכמים כאן שני ניסויים מתוך מחקרים שהתפרסמו בעבר.
+
+טוגנים וכאבי בטן
+
+בשנת 1996 אישרה רשות המזון והתרופות האמריקנית (FDA) את השימוש בחומר Olestra, תחליף שומן המיוצר מסוכר ומשמן צמחי, כתוסף מזון. טוגנים מתפוחי אדמה היו המוצר הראשון שהכיל Olestra ויצא לשוק בארצות הברית.
+
+תוך זמן קצר פרצה מחלוקת עזה סביב תוסף המזון הזה. רבים התלוננו על כאבי בטן לאחר אכילת הטוגנים וחשבו שהאשמה הייתה ב־ Olestra. שנתיים לאחר השקת המוצר, חוקרים מבית הספר לרפואה של אוניברסיטת ג'ונס הופקינס תכננו ניסוי שנועד לבדוק אם התוסף גורם לכאבי בטן.
+\f
+תכנון הניסוי
+
+על פי החיזוי שניסחו החוקרים, אם Olestra גורם כאבי בטן אז מי שאוכל Olestra צפוי לסבול מהתכווצויות יותר ממי שאינו אוכל את התוסף. כדי לבחון את החיזוי הם השתמשו באולם קולנוע בשיקגו כ"מעבדה".
+
+הם כינסו 1,100 אנשים בגילים שבין 13 ל־ 38 וביקשו מהם לאכול טוגנים בעת צפייה בסרט. כל משתתף בניסוי קיבל שקית לא מסומנת שהכילה כ־ 360 גרם טוגנים.
+
+בניסוי זה, האנשים שקיבלו טוגנים שהכילו Olestra היו קבוצת הניסוי, ואלה שקיבלו טוגנים ללא Olestra היו קבוצת הביקורת. המשתנה הבלתי־תלוי היה נוכחות או היעדר של Olestra בטוגנים.
+
+ימים אחדים לאחר תום הניסוי התקשרו החוקרים לכל המשתתפים ואספו מהם מידע על כל גילוי של בעיה במעיים או בקיבה שסבלו ממנה לאחר הצפייה בסרט.
+\f
+תוצאות ומסקנות
+
+מבין 563 האנשים שהיו בקבוצת הניסוי, 89 (15.8 אחוזים) התלוננו על כאבי בטן. אבל כך קרה גם ל־ 93 מבין 529 (17.6 אחוזים) האנשים שהיו בקבוצת הביקורת, שאכלו טוגנים רגילים.
+
+הסיכוי של אנשים לסבול מכאבי בטן היה דומה מאוד בלי קשר לטוגנים שאכלו — עם או בלי Olestra. התוצאות האלה לא איששו את החיזוי, והחוקרים הסיקו שאכילת Olestra אינה גורמת להתכווצויות במעיים.
+
+פרפרים וציפורים
+
+פרפר הטווס קיבל את שמו בגלל הכתמים הגדולים והצבעוניים על כנפיו. בשנת 2005 דיווחו חוקרים על תוצאות ניסויים שבדקו אם דפוסי התנהגות מסוימים מסייעים לפרפרי הטווס להתגונן מפני ציפורים הטורפות חרקים.
+
+החוקרים החלו את המחקר בשני ממצאים מתצפיות. האחד: כאשר פרפר טווס נמצא במנוחה הוא מקפל את כנפיו, וכך רק הצד התחתון הכהה גלוי לעין. השני: כאשר פרפר רואה טורף מתקרב הוא פותח וסוגר את כנפיו בתנועות מהירות, ובתוך כך גם מניע את הכנפיים האחוריות באופן שיוצר צליל שריקה וסדרה של נקישות.
+
+החוקרים תהו מדוע פרפר הטווס טופח בכנפיו. לאחר שסקרו מחקרים קודמים הם העלו שתי השערות שעשויות להסביר את ההתנהגות הזו.`;
       document.getElementById('textInput').value = sample;
-      dirtyText = sample;
-      cleanedText = await cleanTextAsync(sample);
-      await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+
+      // Sample has pages
+      hasPages = true;
+      await loadPagesAsync(sample);
+      hideLoading();
     }
 
     function toggleClean() {
@@ -1654,14 +1741,13 @@
       log('currentIndex set to 0');
 
       // Update settings
-      chunkSize = parseInt(document.getElementById('chunkSize').value) || 3;
-      wpm = parseInt(document.getElementById('wpm').value) || 150;
+      chunkSize = parseInt(document.getElementById('chunkSize').value) || 1;
+      wpm = parseInt(document.getElementById('wpm').value) || 200;
 
       // Hide input, show pacer
       document.getElementById('inputArea').style.display = 'none';
-      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('controls').style.display = 'none';
       document.getElementById('textDisplay').style.display = 'block';
-      document.getElementById('pageNav').style.display = 'none'; // No pages for regular text
 
       parseSentences();
       logState('initPacerAsync done');
@@ -1741,8 +1827,10 @@
       // Determine current chunk boundaries
       let currentEnd;
       if (sentenceMode && sentences.length > 0) {
-        const sent = sentences[currentSentence];
-        currentEnd = sent ? sent.endIdx : words.length;
+        // Highlight chunkSize sentences
+        const lastSentIdx = Math.min(currentSentence + chunkSize - 1, sentences.length - 1);
+        const lastSent = sentences[lastSentIdx];
+        currentEnd = lastSent ? lastSent.endIdx : words.length;
       } else {
         currentEnd = Math.min(currentIndex + chunkSize, words.length);
       }
@@ -1789,8 +1877,8 @@
 
     function nextChunk() {
       if (sentenceMode) {
-        if (currentSentence < sentences.length - 1) {
-          currentSentence++;
+        if (currentSentence + chunkSize < sentences.length) {
+          currentSentence += chunkSize;
           currentIndex = sentences[currentSentence].startIdx;
           renderText();
           updateWordProgress();
@@ -1815,7 +1903,7 @@
     function prevChunk() {
       if (sentenceMode) {
         if (currentSentence > 0) {
-          currentSentence--;
+          currentSentence = Math.max(0, currentSentence - chunkSize);
           currentIndex = sentences[currentSentence].startIdx;
           renderText();
           updateWordProgress();
@@ -1847,14 +1935,17 @@
     function toggleAuto() {
       autoAdvance = !autoAdvance;
       const btn = document.getElementById('autoBtn');
+      const playBtn = document.getElementById('playBtn');
 
       if (autoAdvance) {
         btn.classList.add('active');
         btn.textContent = '⏸ עצור';
+        playBtn.textContent = '⏸';
         startAutoAdvance();
       } else {
         btn.classList.remove('active');
         btn.textContent = '▶ אוטומטי';
+        playBtn.textContent = '⟳';
         stopAutoAdvance();
       }
     }
@@ -1872,8 +1963,8 @@
     }
 
     function updateSettings() {
-      chunkSize = parseInt(document.getElementById('chunkSize').value) || 3;
-      wpm = parseInt(document.getElementById('wpm').value) || 150;
+      chunkSize = parseInt(document.getElementById('chunkSize').value) || 1;
+      wpm = parseInt(document.getElementById('wpm').value) || 200;
 
       if (autoAdvance) {
         stopAutoAdvance();
@@ -1886,15 +1977,8 @@
     function reset() {
       log('reset() called');
       currentIndex = 0;
+      currentSentence = 0;
       if (autoAdvance) toggleAuto();
-
-      // Reset to first page if in page mode
-      if (hasPages && currentPage !== 0) {
-        currentPage = 0;
-        initCurrentPage();
-        updatePageNav();
-        return;
-      }
 
       logState('after reset');
       renderText();
@@ -1970,8 +2054,11 @@
       }
     });
 
-    // New document button shows drop prompt
+    // New document button shows input area with drop prompt
     document.getElementById('newDocBtn').addEventListener('click', () => {
+      if (autoAdvance) toggleAuto();
+      document.getElementById('inputArea').style.display = 'block';
+      document.getElementById('textDisplay').style.display = 'none';
       showDropPrompt();
     });
 
@@ -2160,6 +2247,15 @@
     });
 
     log('All event listeners initialized', 'i');
+
+    // Sync JS variables from input values (respects browser cache)
+    chunkSize = parseInt(document.getElementById('chunkSizeInput').value) || 1;
+    wpm = parseInt(document.getElementById('wpmInput').value) || 200;
+    document.getElementById('chunkSize').value = chunkSize;
+    document.getElementById('wpm').value = wpm;
+
+    // Auto-load sample text on start
+    loadSampleText();
   </script>
 </body>
 </html>
