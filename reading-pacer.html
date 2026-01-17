@@ -370,7 +370,7 @@
 
     .drop-prompt {
       position: absolute;
-      top: 50%;
+      top: calc(50% - 70px);
       left: 50%;
       transform: translate(-50%, -50%);
       display: flex;
@@ -396,6 +396,7 @@
       opacity: 1;
       pointer-events: auto;
       cursor: text;
+      overflow-y: auto;
     }
 
     /* When prompt is visible, clicking the zone dismisses it */
@@ -774,6 +775,90 @@
       padding-left: 8px;
     }
 
+    .bar-inputs {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 40px;
+      direction: rtl;
+    }
+    .bar-input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .bar-input-group span {
+      min-width: 95px;
+      text-align: right;
+    }
+    .bar-input-group input[type="number"] {
+      width: 68px;
+      padding: 6px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 14px;
+      text-align: center;
+      margin-right: -16px;
+    }
+    #wpmInput {
+      margin-right: -20px;
+    }
+    .bar-input-group:last-child {
+      margin-right: -20px;
+    }
+    .bar-input-group input[type="number"]::-webkit-inner-spin-button,
+    .bar-input-group input[type="number"]::-webkit-outer-spin-button {
+      opacity: 1;
+      height: 24px;
+    }
+
+    .bar-buttons-right {
+      position: absolute;
+      bottom: 44px;
+      right: 26px;
+      display: flex;
+      gap: 10px;
+    }
+    .bar-buttons-left {
+      position: absolute;
+      bottom: 10px;
+      left: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .bar-btn {
+      min-width: 100px;
+      height: 28px;
+      padding: 0 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bar-btn:hover {
+      background: var(--btn-hover);
+    }
+    .bar-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
     .page-slider-wrapper {
       position: fixed;
       bottom: 48px;
@@ -1072,6 +1157,26 @@
     <button class="play-btn" id="playBtn">⟳</button>
     <div class="wing wing-right">‹</div>
     <div class="wing-outer wing-outer-right">«</div>
+
+    <div class="bar-inputs">
+      <label class="bar-input-group">
+        <span>כמות מילים:</span>
+        <input type="number" id="chunkSizeInput" value="3" min="1" max="20">
+      </label>
+      <label class="bar-input-group">
+        <span>מילים/דקה:</span>
+        <input type="number" id="wpmInput" value="200" min="50" max="1000" step="10">
+      </label>
+    </div>
+
+    <div class="bar-buttons-left">
+      <button class="bar-btn" id="cleanTextBtn">טקסט נקי</button>
+      <button class="bar-btn" id="wordModeBtn">מצב מילים</button>
+    </div>
+
+    <div class="bar-buttons-right">
+      <button class="bar-btn" id="resetBtn">איפוס</button>
+    </div>
   </div>
 
   <!-- Page Slider -->
@@ -1169,6 +1274,30 @@
         updateThumbPosition(e);
       });
     })();
+
+    // Toggle buttons
+    document.getElementById('wordModeBtn').addEventListener('click', function() {
+      const chunkLabel = document.querySelector('#chunkSizeInput').previousElementSibling;
+      const wpmLabel = document.querySelector('#wpmInput').previousElementSibling;
+
+      if (this.textContent === 'מצב מילים') {
+        this.textContent = 'מצב משפטים';
+        chunkLabel.textContent = 'כמות משפטים:';
+        wpmLabel.textContent = 'משפטים/דקה:';
+      } else {
+        this.textContent = 'מצב מילים';
+        chunkLabel.textContent = 'כמות מילים:';
+        wpmLabel.textContent = 'מילים/דקה:';
+      }
+    });
+
+    document.getElementById('cleanTextBtn').addEventListener('click', function() {
+      if (this.textContent === 'טקסט נקי') {
+        this.textContent = 'טקסט מכוער';
+      } else {
+        this.textContent = 'טקסט נקי';
+      }
+    });
 
     // Theme management
     function setTheme(theme) {
