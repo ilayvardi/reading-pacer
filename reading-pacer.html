@@ -823,10 +823,23 @@
 
     .bar-buttons-right {
       position: absolute;
-      bottom: 44px;
+      top: 7.5px;
       right: 26px;
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .bar-buttons-right .bar-btn {
+      width: 100px;
+    }
+    .bar-buttons-right .bar-input-group {
+      margin-right: 0px;
+    }
+    .bar-buttons-right .bar-input-group span {
+      margin-right: -5px;
+    }
+    .bar-buttons-right .bar-input-group input[type="number"] {
+      margin-right: -40px;
     }
     .bar-buttons-left {
       position: absolute;
@@ -1178,6 +1191,10 @@
 
     <div class="bar-buttons-right">
       <button class="bar-btn" id="resetBtn">איפוס</button>
+      <label class="bar-input-group">
+        <span>גלילה ב%:</span>
+        <input type="number" id="scrollToleranceInput" value="20" min="5" max="40" step="5">
+      </label>
     </div>
   </div>
 
@@ -1326,6 +1343,11 @@
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', reset);
 
+    // Scroll tolerance input
+    document.getElementById('scrollToleranceInput').addEventListener('change', function() {
+      scrollTolerance = parseInt(this.value) || 20;
+    });
+
     // Bottom bar input sync
     document.getElementById('chunkSizeInput').addEventListener('change', function() {
       chunkSize = parseInt(this.value) || 1;
@@ -1401,6 +1423,7 @@
     let sentenceMode = false;
     let sentences = [];       // Array of { startIdx, endIdx } marking word indices for each sentence
     let currentSentence = 0;
+    let scrollTolerance = 20;  // How far from 25% target before scrolling
 
     // Junk patterns to remove (for Open University / similar PDF watermarks)
     const cleanPatterns = [
@@ -1856,10 +1879,21 @@
 
       display.innerHTML = html;
 
-      // Scroll current into view
+      // Smart scroll - only when highlight leaves comfort zone around 25%
       const currentEl = document.getElementById('currentChunk');
       if (currentEl) {
-        currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const rect = currentEl.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const targetPos = 0.25; // Fixed at 25% from top
+        const tolerance = scrollTolerance / 100;
+        const comfortTop = viewportHeight * (targetPos - tolerance);
+        const comfortBottom = viewportHeight * (targetPos + tolerance);
+
+        // Only scroll if outside comfort zone
+        if (rect.top < comfortTop || rect.bottom > comfortBottom) {
+          const targetY = window.scrollY + rect.top - (viewportHeight * targetPos);
+          window.scrollTo({ top: targetY, behavior: 'smooth' });
+        }
       }
     }
 
@@ -2251,6 +2285,7 @@
     // Sync JS variables from input values (respects browser cache)
     chunkSize = parseInt(document.getElementById('chunkSizeInput').value) || 1;
     wpm = parseInt(document.getElementById('wpmInput').value) || 200;
+    scrollTolerance = parseInt(document.getElementById('scrollToleranceInput').value) || 20;
     document.getElementById('chunkSize').value = chunkSize;
     document.getElementById('wpm').value = wpm;
 
