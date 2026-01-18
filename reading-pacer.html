@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reading Pacer</title>
+  <!-- PDF.js for browser-based PDF processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * { box-sizing: border-box; }
 
@@ -145,6 +147,7 @@
     .container {
       max-width: 900px;
       margin: 0 auto;
+      transition: margin 0.3s ease;
     }
 
     h1 {
@@ -238,6 +241,7 @@
     .text-display {
       background: transparent;
       padding: 15px 30px;
+      padding-bottom: 220px; /* Space for bottom bar so end of page text stays visible */
       min-height: 400px;
       font-size: 22px;
       line-height: 2;
@@ -267,10 +271,125 @@
       box-shadow: 0 0 0 2px var(--highlight-current-border);
     }
 
+    /* Vertical Progress Bar */
+    .progress-bar-container {
+      position: fixed;
+      right: 20px;
+      top: 80px;
+      bottom: 20%;
+      width: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.3s ease, right 0.3s ease;
+      z-index: 100;
+    }
+    .progress-bar-container.visible {
+      opacity: 1;
+    }
+    /* Move left when figures panel is open */
+    .progress-bar-container.figures-open {
+      right: 320px;
+    }
+    .progress-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: var(--highlight-current-border);
+      opacity: 0.5;
+      border-radius: 4px;
+      transition: height 0.2s ease;
+    }
+    .progress-bar-percent {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--text);
+      background: #1e1e2e;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      border: 2px solid var(--highlight-current-border);
+      top: 0;
+      transition: top 0.2s ease;
+      cursor: grab;
+      user-select: none;
+    }
+    .progress-bar-percent:active {
+      cursor: grabbing;
+    }
+    .progress-bar-percent.dragging {
+      transition: none;
+    }
+
+    /* Per-word pop animation (not in VN or sentence mode) */
+    .text-display:not(.vn-mode):not(.sentence-mode) .word-pop {
+      display: inline-block;
+      transform-origin: center center;
+      animation: word-pop var(--anim-speed, 0.15s) ease-out;
+    }
+
+    @keyframes word-pop {
+      0% { transform: scale(1); opacity: 0; }
+      50% { transform: scale(var(--pop-scale, 1.08)); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* VN Fade Mode - opacity based on sentence distance */
+    .vn-mode .vn-fade-0 { opacity: 1; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-1 { opacity: 0.50; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-2 { opacity: 0.375; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-3 { opacity: 0.25; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-4 { opacity: 0.125; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-5 { opacity: 0; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-6 { opacity: 0; transition: opacity 0.5s ease; }
+    .vn-mode .vn-fade-peek { opacity: 0.08; transition: opacity 0.5s ease; }
+
+    /* VN Border - SVG overlay */
+    #vnBorderSvg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    #vnBorderPath {
+      fill: none;
+      stroke: var(--text-color, #e0e0e0);
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      opacity: 0.6;
+    }
+
+    /* Current chunk fade-in animation */
+    .vn-mode .vn-fade-in {
+      animation: vnFadeIn 0.3s ease forwards;
+    }
+
+    @keyframes vnFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
     .heading {
       font-weight: bold;
       text-decoration: underline;
       font-size: 1.3em;
+    }
+
+    .paragraph-break {
+      display: block;
+      height: var(--paragraph-spacing, 16px);
     }
 
     /* Top Bar */
@@ -322,6 +441,146 @@
     .top-btn:hover {
       background: var(--bg-tertiary);
     }
+
+    /* Library Sidebar */
+    .library-sidebar {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      bottom: 0;
+      width: 300px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .library-sidebar.open {
+      transform: translateX(0);
+    }
+
+    .library-header {
+      padding: 15px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .library-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-primary);
+    }
+
+    .library-close {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .library-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .library-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .library-item:hover {
+      background: var(--bg-primary);
+    }
+
+    .library-item.active {
+      border: 2px solid var(--accent);
+    }
+
+    .library-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .library-item-name {
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      direction: rtl;
+    }
+
+    .library-item-name[contenteditable="true"] {
+      background: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      outline: 1px solid var(--accent);
+    }
+
+    .library-item-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .library-item-rename,
+    .library-item-delete {
+      background: transparent;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .library-item:hover .library-item-rename,
+    .library-item-delete {
+      opacity: 1;
+    }
+
+    .library-item-delete:hover {
+      color: #ff6b6b;
+    }
+
+    .library-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .library-overlay {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
+      z-index: 99;
+    }
+
+    .library-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
 
     /* Offset container for fixed top bar */
     .container {
@@ -1116,9 +1375,165 @@
       color: var(--text-muted);
       font-size: 13px;
     }
+
+    /* Pages Panel - Left side PDF-style preview */
+    .figures-panel {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      width: 88px;
+      bottom: 0;
+      background: var(--bg-tertiary);
+      border-right: 1px solid var(--border);
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+    .figures-panel.open {
+      transform: translateX(0);
+    }
+    /* Shift content when panel is open */
+    body.figures-panel-open .container {
+      margin-left: 27px;
+      margin-right: -27px;
+    }
+    .figures-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 4px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .figures-header span {
+      display: none;
+    }
+    .figures-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px;
+    }
+    .figures-close:hover {
+      color: var(--text-primary);
+    }
+    .figures-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .page-thumb {
+      position: relative;
+      cursor: pointer;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid transparent;
+      transition: border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .page-thumb:hover {
+      border-color: var(--text-muted);
+    }
+    .page-thumb.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      transform: scale(1.05);
+      z-index: 2;
+    }
+    .page-thumb img {
+      width: 100%;
+      display: block;
+    }
+    .page-thumb-label {
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .page-thumb.active .page-thumb-label {
+      background: var(--accent);
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 6px;
+    }
+    .figures-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 150px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .figures-placeholder p {
+      margin: 4px 0;
+    }
+    .figures-content.drag-over {
+      background: var(--bg-secondary);
+    }
+    .figures-content.drag-over .figures-placeholder {
+      border-color: var(--accent);
+      background: rgba(10, 132, 255, 0.1);
+      color: var(--accent);
+    }
+    /* Lightbox for full-size figure view */
+    .figure-lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10002;
+      cursor: zoom-in;
+      overflow: hidden;
+    }
+    .figure-lightbox.active {
+      display: flex;
+    }
+    .figure-lightbox.zoomed {
+      cursor: grab;
+    }
+    .figure-lightbox.zoomed.dragging {
+      cursor: grabbing;
+    }
+    .figure-lightbox img {
+      max-width: 95vw;
+      max-height: 95vh;
+      transition: transform 0.1s ease-out;
+      transform-origin: center center;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
+  <!-- VN Border SVG Overlay -->
+  <svg id="vnBorderSvg" style="display: none;">
+    <path id="vnBorderPath"></path>
+  </svg>
+
   <!-- Top Bar -->
   <header class="top-bar">
     <div class="top-bar-right">
@@ -1126,10 +1541,29 @@
     </div>
     <h1 class="top-bar-title">קרא בקצב שלך</h1>
     <div class="top-bar-left">
+      <button class="top-btn" id="figuresBtn" title="איורים">🖼️</button>
       <button class="top-btn" id="styleBtn" title="עיצוב">🎨</button>
       <button class="top-btn" id="libraryBtn" title="ספרייה">📚</button>
     </div>
   </header>
+
+  <!-- Library Sidebar -->
+  <div class="library-overlay" id="libraryOverlay"></div>
+  <aside class="library-sidebar" id="librarySidebar">
+    <div class="library-header">
+      <h2>📚 ספרייה</h2>
+      <button class="library-close" id="libraryClose">✕</button>
+    </div>
+    <div class="library-list" id="libraryList">
+      <div class="library-empty">אין פריטים בספרייה</div>
+    </div>
+  </aside>
+
+  <!-- Vertical Progress Bar -->
+  <div class="progress-bar-container" id="progressBar">
+    <div class="progress-bar-fill" id="progressFill"></div>
+    <span class="progress-bar-percent" id="progressPercent">0%</span>
+  </div>
 
   <!-- Settings Dropdown -->
   <div class="settings-dropdown" id="settingsDropdown">
@@ -1230,6 +1664,80 @@
       </div>
     </div>
 
+    <!-- VN Mode -->
+    <div class="settings-section">
+      <h3>מצב VN</h3>
+      <div class="settings-row">
+        <label>אפקט דעיכה:</label>
+        <div class="settings-toggle">
+          <button id="vnModeOn">פעיל</button>
+          <button id="vnModeOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>טווח תצוגה:</label>
+        <input type="range" id="settingsVnRadius" min="0" max="50" value="5">
+        <span class="range-value" id="vnRadiusValue">2</span>
+      </div>
+      <div class="settings-row">
+        <label>משפטים גלויים:</label>
+        <input type="range" id="settingsVnSentenceBuffer" min="1" max="5" value="1">
+        <span class="range-value" id="vnSentenceBufferValue">1</span>
+      </div>
+      <div class="settings-row">
+        <label>מסגרת VN:</label>
+        <div class="settings-toggle">
+          <button id="vnBorderOn">פעיל</button>
+          <button id="vnBorderOff" class="active">כבוי</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sound -->
+    <div class="settings-section">
+      <h3>צליל</h3>
+      <div class="settings-row">
+        <label>מטרונום:</label>
+        <div class="settings-toggle">
+          <button id="metronomeOn" class="active">פעיל</button>
+          <button id="metronomeOff">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>עוצמה:</label>
+        <input type="range" id="settingsVolume" min="0" max="100" value="50">
+        <span class="range-value" id="volumeValue">50%</span>
+      </div>
+    </div>
+
+    <!-- Animation -->
+    <div class="settings-section">
+      <h3>אנימציה</h3>
+      <div class="settings-row">
+        <label>גודל פופ:</label>
+        <input type="range" id="settingsPopSize" min="0" max="20" value="8">
+        <span class="range-value" id="popSizeValue">8%</span>
+      </div>
+      <div class="settings-row">
+        <label>מהירות:</label>
+        <input type="range" id="settingsAnimSpeed" min="5" max="50" value="15">
+        <span class="range-value" id="animSpeedValue">0.15s</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Pages Panel - PDF-style thumbnails -->
+  <div class="figures-panel" id="figuresPanel">
+    <div class="figures-header">
+      <span>עמודים</span>
+      <button class="figures-close" onclick="closeFiguresPanel()">✕</button>
+    </div>
+    <div class="figures-content" id="figuresContent">
+      <div class="figures-placeholder">
+        <p>גרור תיקיית תמונות</p>
+      </div>
+    </div>
   </div>
 
   <div class="container">
@@ -1426,6 +1934,11 @@
     <div class="page-slider-thumb" id="pageSliderThumb">1/1</div>
   </div>
 
+  <!-- Figure Lightbox -->
+  <div class="figure-lightbox" id="figureLightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="Figure">
+  </div>
+
   <!-- Debug -->
   <div id="debugIcon" onclick="toggleDebug()" title="Debug">🪲</div>
   <div id="debugPanel">
@@ -1537,12 +2050,10 @@
       if (this.textContent === 'מצב מילים') {
         this.textContent = 'מצב משפטים';
         chunkLabel.textContent = 'כמות משפטים:';
-        wpmLabel.textContent = 'משפטים/דקה:';
         modeSelect.value = 'sentences';
       } else {
         this.textContent = 'מצב מילים';
         chunkLabel.textContent = 'כמות מילים:';
-        wpmLabel.textContent = 'מילים/דקה:';
         modeSelect.value = 'words';
       }
       toggleMode();
@@ -1569,12 +2080,16 @@
     });
 
     // Bottom bar input sync
-    document.getElementById('chunkSizeInput').addEventListener('change', function() {
+    document.getElementById('chunkSizeInput').addEventListener('input', function() {
       chunkSize = parseInt(this.value) || 1;
       document.getElementById('chunkSize').value = chunkSize;
       renderText();
+      if (autoAdvance) {
+        stopAutoAdvance();
+        startAutoAdvance();
+      }
     });
-    document.getElementById('wpmInput').addEventListener('change', function() {
+    document.getElementById('wpmInput').addEventListener('input', function() {
       wpm = parseInt(this.value) || 200;
       document.getElementById('wpm').value = wpm;
       if (autoAdvance) {
@@ -1645,6 +2160,12 @@
     let currentSentence = 0;
     let scrollTolerance = 20;  // How far from 25% target before scrolling
 
+    // VN Mode - visual novel style fading
+    let vnMode = localStorage.getItem('reading-pacer-vnmode') === 'true';
+    let vnRadius = parseInt(localStorage.getItem('reading-pacer-vnradius')) || 5;
+    let vnSentenceBuffer = parseInt(localStorage.getItem('reading-pacer-vnsentencebuffer')) || 1;
+    let vnBorder = localStorage.getItem('reading-pacer-vnborder') === 'true';
+
     // Junk patterns to remove (for Open University / similar PDF watermarks)
     const cleanPatterns = [
       { regex: /^[_\-\u200E\u200F\u202A\u202B\u202C\u202D\u202E\s]+$/gm },           // Separator lines
@@ -1710,6 +2231,16 @@
         await initPacerAsync(useCleanText ? cleanedText : dirtyText);
       }
       hideLoading();
+      
+      // Save to library (skip if loading from library)
+      if (!currentLibraryId) {
+        if (hasPages) {
+          currentLibraryId = await saveToLibrary(text, pages);
+        } else {
+          currentLibraryId = await saveToLibrary(text);
+        }
+        log('Saved to library: ' + currentLibraryId);
+      }
     }
 
     // Process multi-page PDF text
@@ -1841,6 +2372,19 @@
         }
         hideLoading();
         if (typeof saveState === 'function') saveState();
+        
+        // Save to library
+        if (hasPages) {
+          saveToLibrary(text, pages).then(id => {
+            currentLibraryId = id;
+            log('Saved to library: ' + id);
+          });
+        } else {
+          saveToLibrary(text).then(id => {
+            currentLibraryId = id;
+            log('Saved to library: ' + id);
+          });
+        }
       };
       reader.readAsText(file);
     }
@@ -2061,6 +2605,10 @@
       sentenceMode = (mode === 'sentences');
       const chunkInput = document.getElementById('chunkSize');
       chunkInput.style.display = sentenceMode ? 'none' : 'inline-block';
+      
+      // Toggle sentence-mode class for CSS
+      const textDisplay = document.getElementById('textDisplay');
+      textDisplay.classList.toggle('sentence-mode', sentenceMode);
 
       if (sentenceMode && sentences.length > 0) {
         // Find which sentence contains current word
@@ -2074,27 +2622,252 @@
       updateWordProgress();
     }
 
-    function joinWithSmartSpacing(wordObjects, startIdx) {
+    // VN Mode: N sentences visible, previous sentences fade per word once outside buffer
+    function getVnFadeClass(wordIdx) {
+      if (!vnMode) return '';
+
+      // Find sentence boundaries
+      const wordSentence = sentences.findIndex(s => wordIdx >= s.startIdx && wordIdx < s.endIdx);
+      const currentSentenceIdx = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+
+      // Current chunk boundaries
+      const chunkEnd = currentIndex + chunkSize;
+      const peekEnd = chunkEnd + chunkSize; // 1 chunk ahead for peek
+
+      // CURRENT CHUNK: fully visible
+      if (wordIdx >= currentIndex && wordIdx < chunkEnd) {
+        return 'vn-fade-0';
+      }
+
+      // SENTENCES WITHIN BUFFER: fully visible
+      if (wordSentence >= 0 && currentSentenceIdx >= 0) {
+        const sentenceDistance = currentSentenceIdx - wordSentence;
+        // Current sentence + (buffer-1) previous sentences stay visible
+        if (sentenceDistance >= 0 && sentenceDistance < vnSentenceBuffer && wordIdx < currentIndex) {
+          return 'vn-fade-0';
+        }
+      }
+
+      // PEEK CHUNK (1 chunk ahead): really faded but visible
+      if (wordIdx >= chunkEnd && wordIdx < peekEnd) {
+        return 'vn-fade-peek';
+      }
+
+      // AHEAD (beyond peek): invisible
+      if (wordIdx >= peekEnd) {
+        return 'vn-fade-6';
+      }
+
+      // PREVIOUS SENTENCES (outside buffer): start at 50%, fade 12.5% per word
+      if (wordSentence >= 0 && currentSentenceIdx >= 0 && wordSentence < currentSentenceIdx) {
+        const sentenceDistance = currentSentenceIdx - wordSentence;
+        if (sentenceDistance >= vnSentenceBuffer) {
+          // Find the oldest buffered sentence to measure distance from
+          const bufferEndSentence = currentSentenceIdx - vnSentenceBuffer;
+          const bufferEndIdx = sentences[bufferEndSentence] ? sentences[bufferEndSentence].endIdx : currentIndex;
+          const wordDistance = bufferEndIdx - wordIdx;
+          // Start at level 1 (50%), each word = +1 level (12.5% more faded)
+          const fadeLevel = Math.min(1 + Math.floor(wordDistance / 1), 6);
+          return 'vn-fade-' + fadeLevel;
+        }
+      }
+
+      // Fallback
+      return 'vn-fade-6';
+    }
+
+    function joinWithSmartSpacing(wordObjects, startIdx, isCurrentChunk = false) {
       return wordObjects.map((w, i) => {
         const globalIdx = startIdx + i;
         // Paragraph break (double newline)
         if (w.isParagraph) {
-          return '<br><br>';
+          return '<span class="paragraph-break"></span>';
         }
         // Line break (single newline)
         if (w.isLine) {
           return '<br>';
         }
-        // Punctuation: just plain text, no span wrapper
+        // Punctuation/numbers: wrap in span for VN mode fade, plain text otherwise
         if (!w.isWord) {
+          if (vnMode) {
+            const vnClass = getVnFadeClass(globalIdx);
+            return `<span class="${vnClass}">${w.text}</span>`;
+          }
           return w.text;
         }
         // Real word: clickable span with space before (unless first or after break)
         const headingClass = w.isHeading ? ' heading' : '';
-        const span = `<span class="word${headingClass}" onclick="setPosition(${globalIdx})">${w.text}</span>`;
+        const vnClass = getVnFadeClass(globalIdx);
+        // Add word-pop class for current chunk words (not in VN mode)
+        const popClass = (isCurrentChunk && !vnMode) ? ' word-pop' : '';
+        const span = `<span class="word${headingClass}${popClass}${vnClass ? ' ' + vnClass : ''}" onclick="setPosition(${globalIdx})">${w.text}</span>`;
         const prevIsBreak = i > 0 && (wordObjects[i-1].isParagraph || wordObjects[i-1].isLine);
         return (i > 0 && !prevIsBreak) ? ' ' + span : span;
       }).join('');
+    }
+
+    // Draw VN border around current + upcoming sentences (the "reading zone")
+    function drawVnBorder() {
+      const svg = document.getElementById('vnBorderSvg');
+      const path = document.getElementById('vnBorderPath');
+      
+      if (!vnBorder || !vnMode || sentences.length === 0) {
+        svg.style.display = 'none';
+        return;
+      }
+      
+      // Find current sentence
+      const currentSentenceIdx = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+      if (currentSentenceIdx < 0) {
+        svg.style.display = 'none';
+        return;
+      }
+      
+      // Calculate which "batch" of sentences we're in
+      // Each batch contains vnSentenceBuffer sentences
+      const batchNumber = Math.floor(currentSentenceIdx / vnSentenceBuffer);
+      const startSentence = batchNumber * vnSentenceBuffer;
+      const endSentence = Math.min(sentences.length - 1, startSentence + vnSentenceBuffer - 1);
+      
+      // Get word range for all these sentences
+      const startWordIdx = sentences[startSentence].startIdx;
+      const endWordIdx = sentences[endSentence].endIdx;
+      
+      // Find all word elements in this range
+      const allWords = document.querySelectorAll('.word');
+      const rects = [];
+      
+      allWords.forEach(word => {
+        // Get word index from onclick attribute
+        const onclick = word.getAttribute('onclick');
+        if (!onclick) return;
+        const match = onclick.match(/setPosition\((\d+)\)/);
+        if (!match) return;
+        const wordIdx = parseInt(match[1]);
+        
+        // Check if word is in our range
+        if (wordIdx >= startWordIdx && wordIdx < endWordIdx) {
+          const rect = word.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            rects.push({
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom
+            });
+          }
+        }
+      });
+      
+      if (rects.length === 0) {
+        svg.style.display = 'none';
+        return;
+      }
+      
+      // Group rects by line (similar Y position, within 5px tolerance)
+      const lines = [];
+      const tolerance = 5;
+      
+      rects.forEach(rect => {
+        const midY = (rect.top + rect.bottom) / 2;
+        let foundLine = lines.find(line => Math.abs(line.midY - midY) < tolerance);
+        if (foundLine) {
+          foundLine.rects.push(rect);
+          foundLine.left = Math.min(foundLine.left, rect.left);
+          foundLine.right = Math.max(foundLine.right, rect.right);
+          foundLine.top = Math.min(foundLine.top, rect.top);
+          foundLine.bottom = Math.max(foundLine.bottom, rect.bottom);
+        } else {
+          lines.push({
+            midY: midY,
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+            rects: [rect]
+          });
+        }
+      });
+      
+      // Sort lines by Y position (top to bottom)
+      lines.sort((a, b) => a.top - b.top);
+      
+      if (lines.length === 0) {
+        svg.style.display = 'none';
+        return;
+      }
+      
+      // Build the path - trace around the outside
+      const padding = 6;
+      const radius = 8;
+      let pathData = '';
+      
+      // Start from top-left of first line
+      const firstLine = lines[0];
+      const startX = firstLine.left - padding;
+      const startY = firstLine.top - padding;
+      
+      // Move to start position
+      pathData = `M ${startX + radius} ${startY}`;
+      
+      // Trace right along top of each line, then down
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const nextLine = lines[i + 1];
+        
+        // Top-right corner of this line
+        pathData += ` L ${line.right + padding - radius} ${line.top - padding}`;
+        pathData += ` Q ${line.right + padding} ${line.top - padding} ${line.right + padding} ${line.top - padding + radius}`;
+        
+        // Right side down
+        if (nextLine && nextLine.right < line.right) {
+          // Next line is shorter on the right - step in
+          pathData += ` L ${line.right + padding} ${line.bottom + padding - radius}`;
+          pathData += ` Q ${line.right + padding} ${line.bottom + padding} ${line.right + padding - radius} ${line.bottom + padding}`;
+          pathData += ` L ${nextLine.right + padding + radius} ${line.bottom + padding}`;
+          pathData += ` Q ${nextLine.right + padding} ${line.bottom + padding} ${nextLine.right + padding} ${nextLine.top - padding + radius}`;
+        } else if (nextLine) {
+          // Next line is same width or wider - just continue down
+          pathData += ` L ${line.right + padding} ${nextLine.top - padding - radius}`;
+          pathData += ` Q ${line.right + padding} ${nextLine.top - padding} ${Math.min(line.right, nextLine.right) + padding - radius} ${nextLine.top - padding}`;
+        } else {
+          // Last line - go to bottom-right corner
+          pathData += ` L ${line.right + padding} ${line.bottom + padding - radius}`;
+          pathData += ` Q ${line.right + padding} ${line.bottom + padding} ${line.right + padding - radius} ${line.bottom + padding}`;
+        }
+      }
+      
+      // Trace left along bottom of each line (reverse order), then up
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        const prevLine = lines[i - 1];
+        
+        // Bottom-left corner of this line
+        pathData += ` L ${line.left - padding + radius} ${line.bottom + padding}`;
+        pathData += ` Q ${line.left - padding} ${line.bottom + padding} ${line.left - padding} ${line.bottom + padding - radius}`;
+        
+        // Left side up
+        if (prevLine && prevLine.left > line.left) {
+          // Previous line starts more to the right - step out
+          pathData += ` L ${line.left - padding} ${line.top - padding + radius}`;
+          pathData += ` Q ${line.left - padding} ${line.top - padding} ${line.left - padding + radius} ${line.top - padding}`;
+          pathData += ` L ${prevLine.left - padding - radius} ${line.top - padding}`;
+          pathData += ` Q ${prevLine.left - padding} ${line.top - padding} ${prevLine.left - padding} ${prevLine.bottom + padding - radius}`;
+        } else if (prevLine) {
+          // Previous line starts at same position or more left - just continue up
+          pathData += ` L ${line.left - padding} ${prevLine.bottom + padding + radius}`;
+          pathData += ` Q ${line.left - padding} ${prevLine.bottom + padding} ${Math.max(line.left, prevLine.left) - padding + radius} ${prevLine.bottom + padding}`;
+        } else {
+          // First line - close the path
+          pathData += ` L ${line.left - padding} ${line.top - padding + radius}`;
+          pathData += ` Q ${line.left - padding} ${line.top - padding} ${line.left - padding + radius} ${line.top - padding}`;
+        }
+      }
+      
+      pathData += ' Z';
+      
+      path.setAttribute('d', pathData);
+      svg.style.display = 'block';
     }
 
     function renderText() {
@@ -2115,14 +2888,18 @@
 
       // Group words into: read, current, unread
       if (currentIndex > 0) {
-        // Read words - continuous highlight
+        // Read words - skip highlight in VN mode (fading handles it)
         const readContent = joinWithSmartSpacing(words.slice(0, currentIndex), 0);
-        html += `<span class="highlight-read">${readContent}</span> `;
+        if (vnMode) {
+          html += readContent + ' ';
+        } else {
+          html += `<span class="highlight-read">${readContent}</span> `;
+        }
       }
 
       // Current chunk - continuous highlight
       if (currentIndex < words.length) {
-        const currentContent = joinWithSmartSpacing(words.slice(currentIndex, currentEnd), currentIndex);
+        const currentContent = joinWithSmartSpacing(words.slice(currentIndex, currentEnd), currentIndex, true);
         html += `<span class="highlight-current" id="currentChunk">${currentContent}</span> `;
       }
 
@@ -2150,6 +2927,9 @@
           window.scrollTo({ top: targetY, behavior: 'smooth' });
         }
       }
+      
+      // Draw VN border after DOM update
+      requestAnimationFrame(drawVnBorder);
     }
 
     function setPosition(idx) {
@@ -2180,6 +2960,7 @@
           renderText();
           updateWordProgress();
         } else if (hasPages && currentPage < pages.length - 1) {
+          playPageFinishSound();
           goToPage(currentPage + 1, autoAdvance);
         } else if (autoAdvance) {
           toggleAuto();
@@ -2190,6 +2971,7 @@
           renderText();
           updateWordProgress();
         } else if (hasPages && currentPage < pages.length - 1) {
+          playPageFinishSound();
           goToPage(currentPage + 1, autoAdvance);
         } else if (autoAdvance) {
           toggleAuto();
@@ -2229,6 +3011,59 @@
       }
     }
 
+
+    function nextLine() {
+      for (let i = currentIndex + 1; i < words.length; i++) {
+        if (words[i].isLine || words[i].isParagraph) {
+          const nextIdx = skipBreaks(i + 1, 1);
+          if (nextIdx < words.length) {
+            currentIndex = nextIdx;
+            if (sentenceMode) {
+              currentSentence = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+              if (currentSentence < 0) currentSentence = 0;
+            }
+            renderText();
+            updateWordProgress();
+          }
+          return;
+        }
+      }
+      if (hasPages && currentPage < pages.length - 1) goToPage(currentPage + 1, false);
+    }
+
+    function prevLine() {
+      let foundBreak = -1;
+      for (let i = currentIndex - 1; i >= 0; i--) {
+        if (words[i].isLine || words[i].isParagraph) { foundBreak = i; break; }
+      }
+      if (foundBreak >= 0) {
+        let prevBreak = -1;
+        for (let i = foundBreak - 1; i >= 0; i--) {
+          if (words[i].isLine || words[i].isParagraph) { prevBreak = i; break; }
+        }
+        currentIndex = prevBreak >= 0 ? skipBreaks(prevBreak + 1, 1) : 0;
+        if (sentenceMode) {
+          currentSentence = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+          if (currentSentence < 0) currentSentence = 0;
+        }
+        renderText();
+        updateWordProgress();
+      } else if (currentIndex > 0) {
+        currentIndex = 0;
+        if (sentenceMode) currentSentence = 0;
+        renderText();
+        updateWordProgress();
+      } else if (hasPages && currentPage > 0) {
+        currentPage--;
+        initCurrentPage().then(() => {
+          currentIndex = skipBreaks(words.length - 1, -1);
+          renderText();
+          updateWordProgress();
+          updatePageNav();
+        });
+      }
+    }
+
     function toggleAuto() {
       autoAdvance = !autoAdvance;
       const btn = document.getElementById('autoBtn');
@@ -2247,14 +3082,39 @@
       }
     }
 
+    function getAutoAdvanceInterval() {
+      if (sentenceMode && sentences.length > 0) {
+        // Sentence mode: calculate based on words in current sentence(s)
+        const startSent = currentSentence;
+        const endSent = Math.min(currentSentence + chunkSize, sentences.length);
+        let wordCount = 0;
+        for (let i = startSent; i < endSent; i++) {
+          wordCount += sentences[i].endIdx - sentences[i].startIdx;
+        }
+        const baseTime = (wordCount / wpm) * 60000;
+        return baseTime * 1.1; // 10% buffer
+      } else {
+        // Word mode: fixed interval
+        return (chunkSize / wpm) * 60000;
+      }
+    }
+
+    function scheduleNextChunk() {
+      if (!autoAdvance) return;
+      const interval = getAutoAdvanceInterval();
+      autoInterval = setTimeout(() => {
+        nextChunk();
+        scheduleNextChunk();
+      }, interval);
+    }
+
     function startAutoAdvance() {
-      const interval = (chunkSize / wpm) * 60000;
-      autoInterval = setInterval(nextChunk, interval);
+      scheduleNextChunk();
     }
 
     function stopAutoAdvance() {
       if (autoInterval) {
-        clearInterval(autoInterval);
+        clearTimeout(autoInterval);
         autoInterval = null;
       }
     }
@@ -2292,15 +3152,102 @@
 
     function updateWordProgress() {
       let progressText;
+      let percent;
+      let visualPercent;
       if (sentenceMode) {
         progressText = `משפט ${currentSentence + 1} / ${sentences.length}`;
+        percent = sentences.length > 0 ? ((currentSentence + 1) / sentences.length) * 100 : 0;
+        visualPercent = percent;
       } else {
         progressText = `${currentIndex} / ${words.length}`;
+        percent = words.length > 0 ? (currentIndex / words.length) * 100 : 0;
+        // Snap visual to line boundaries to reduce jitter
+        let lineStart = 0;
+        for (let i = currentIndex; i >= 0; i--) {
+          if (i === 0 || words[i-1].isLine || words[i-1].isParagraph) {
+            lineStart = i;
+            break;
+          }
+        }
+        visualPercent = words.length > 0 ? (lineStart / words.length) * 100 : 0;
       }
       if (hasPages) {
         progressText += ` | עמ׳ ${currentPage + 1}/${pages.length}`;
       }
       document.getElementById('progress').textContent = progressText;
+
+      // Update vertical progress bar (use visualPercent for smoother movement)
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+      const progressPercent = document.getElementById('progressPercent');
+      if (words.length > 0) {
+        progressBar.classList.add('visible');
+        progressFill.style.height = visualPercent + '%';
+        progressPercent.style.top = visualPercent + '%';
+        progressPercent.textContent = Math.round(visualPercent) + '%';
+      } else {
+        progressBar.classList.remove('visible');
+      }
+    }
+
+    // Progress bar drag functionality
+    function initProgressBarDrag() {
+      const progressBar = document.getElementById('progressBar');
+      const progressPercent = document.getElementById('progressPercent');
+      let isDragging = false;
+
+      function getPercentFromY(clientY) {
+        const rect = progressBar.getBoundingClientRect();
+        const y = clientY - rect.top;
+        const percent = Math.max(0, Math.min(100, (y / rect.height) * 100));
+        return percent;
+      }
+
+      function seekToPercent(percent) {
+        if (sentenceMode && sentences.length > 0) {
+          const targetSentence = Math.floor((percent / 100) * sentences.length);
+          currentSentence = Math.max(0, Math.min(targetSentence, sentences.length - 1));
+          currentIndex = sentences[currentSentence].startIdx;
+        } else if (words.length > 0) {
+          const targetWord = Math.floor((percent / 100) * words.length);
+          currentIndex = Math.max(0, Math.min(targetWord, words.length - 1));
+        }
+        renderText();
+        updateWordProgress();
+      }
+
+      function onDragStart(e) {
+        isDragging = true;
+        progressPercent.classList.add('dragging');
+        e.preventDefault();
+      }
+
+      function onDragMove(e) {
+        if (!isDragging) return;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const percent = getPercentFromY(clientY);
+        seekToPercent(percent);
+      }
+
+      function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        progressPercent.classList.remove('dragging');
+      }
+
+      progressPercent.addEventListener('mousedown', onDragStart);
+      progressPercent.addEventListener('touchstart', onDragStart);
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('touchmove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchend', onDragEnd);
+
+      // Also allow clicking anywhere on the bar
+      progressBar.addEventListener('click', (e) => {
+        if (e.target === progressPercent) return;
+        const percent = getPercentFromY(e.clientY);
+        seekToPercent(percent);
+      });
     }
 
     // Paste modal functions
@@ -2333,6 +3280,14 @@
       }
       hideLoading();
       if (typeof saveState === 'function') saveState();
+      
+      // Save to library
+      if (hasPages) {
+        currentLibraryId = await saveToLibrary(text, pages);
+      } else {
+        currentLibraryId = await saveToLibrary(text);
+      }
+      log('Saved to library: ' + currentLibraryId);
     }
 
     // Drop prompt toggle functions
@@ -2355,6 +3310,7 @@
     // New document button shows input area with drop prompt
     document.getElementById('newDocBtn').addEventListener('click', () => {
       if (autoAdvance) toggleAuto();
+      currentLibraryId = null; // Reset so next load creates new library item
       document.getElementById('inputArea').style.display = 'block';
       document.getElementById('textDisplay').style.display = 'none';
       showDropPrompt();
@@ -2434,6 +3390,21 @@
       }
       hideLoading();
       if (typeof saveState === 'function') saveState();
+
+      // Save to library
+      if (hasPages) {
+        currentLibraryId = await saveToLibrary(text, pages);
+      } else {
+        currentLibraryId = await saveToLibrary(text);
+      }
+      log('Saved to library: ' + currentLibraryId);
+
+      // Extract images from pending PDF after text is loaded
+      if (pendingPdfFile) {
+        log('Text loaded via modal, now extracting images from pending PDF', 'i');
+        extractPdfPageImages(pendingPdfFile);
+        pendingPdfFile = null;
+      }
     }
 
     function handlePdfDropzoneDragover(e) {
@@ -2482,11 +3453,11 @@
       log('file: ' + (file ? file.name : 'no file'), 'i');
       if (!file) return;
 
-      // PDF detection - show helper modal
+      // PDF detection - store for later, show tutorial modal
       if (file.name.match(/\.pdf$/i)) {
-        log('PDF detected, calling showPdfModal', 'i');
+        log('PDF detected, storing for image extraction after text loads', 'i');
+        pendingPdfFile = file;
         showPdfModal(file.name);
-        log('showPdfModal returned', 'i');
         return;
       }
 
@@ -2513,14 +3484,75 @@
       }
       hideLoading();
       if (typeof saveState === 'function') saveState();
+
+      // Extract images from pending PDF after text is loaded
+      if (pendingPdfFile) {
+        log('Text loaded, now extracting images from pending PDF', 'i');
+        extractPdfPageImages(pendingPdfFile);
+        pendingPdfFile = null;
+      }
+    });
+
+    // Global drag and drop - anywhere on screen
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    document.addEventListener('drop', async (e) => {
+      // Ignore if dropped on inputArea (handled above) or pdfDropzone
+      if (e.target.closest('#inputArea') || e.target.closest('#pdfDropzone')) return;
+
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+
+      // PDF detection
+      if (file.name.match(/\.pdf$/i)) {
+        log('Global drop: PDF detected', 'i');
+        pendingPdfFile = file;
+        showPdfModal(file.name);
+        return;
+      }
+
+      // Only allow txt/md
+      if (!file.name.match(/\.(txt|md)$/i)) {
+        alert('גרור קובץ txt, md או pdf');
+        return;
+      }
+
+      showLoading('קורא קובץ...');
+      const text = await file.text();
+      document.getElementById('textInput').value = text;
+
+      hasPages = text.includes('\f');
+      log(`global drop hasPages=${hasPages}`);
+
+      if (hasPages) {
+        await loadPagesAsync(text);
+      } else {
+        dirtyText = text;
+        cleanedText = await cleanTextAsync(text);
+        await initPacerAsync(useCleanText ? cleanedText : dirtyText);
+      }
+      hideLoading();
+      if (typeof saveState === 'function') saveState();
+
+      // Extract images from pending PDF after text is loaded
+      if (pendingPdfFile) {
+        log('Text loaded (global), now extracting images from pending PDF', 'i');
+        extractPdfPageImages(pendingPdfFile);
+        pendingPdfFile = null;
+      }
     });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
 
       switch(e.code) {
         case 'Space':
+          e.preventDefault();
+          toggleAuto();
+          break;
         case 'ArrowLeft': // Left = forward in RTL
           e.preventDefault();
           nextChunk();
@@ -2529,6 +3561,14 @@
           e.preventDefault();
           prevChunk();
           break;
+        case 'ArrowDown':
+          e.preventDefault();
+          nextLine();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          prevLine();
+          break;
         case 'PageDown':
           e.preventDefault();
           if (hasPages) nextPage();
@@ -2536,9 +3576,6 @@
         case 'PageUp':
           e.preventDefault();
           if (hasPages) prevPage();
-          break;
-        case 'KeyA':
-          toggleAuto();
           break;
         case 'KeyR':
           reset();
@@ -2607,7 +3644,10 @@
         textAlign: document.getElementById('alignCenter').classList.contains('active') ? 'center' :
                    document.getElementById('alignJustify').classList.contains('active') ? 'justify' : 'right',
         highlightRead: document.getElementById('settingsHighlightRead').value,
-        highlightCurrent: document.getElementById('settingsHighlightCurrent').value
+        highlightCurrent: document.getElementById('settingsHighlightCurrent').value,
+        popSize: parseInt(document.getElementById('settingsPopSize').value),
+        animSpeed: parseInt(document.getElementById('settingsAnimSpeed').value),
+        volume: parseInt(document.getElementById('settingsVolume').value)
       };
     }
 
@@ -2719,6 +3759,576 @@
 
     document.getElementById('settingsHighlightRead').addEventListener('input', applyVisualSettings);
     document.getElementById('settingsHighlightCurrent').addEventListener('input', applyVisualSettings);
+
+    // Metronome toggle
+    document.getElementById('metronomeOn').addEventListener('click', function() {
+      document.getElementById('metronomeOff').classList.remove('active');
+      this.classList.add('active');
+      metronomeEnabled = true;
+      localStorage.setItem('reading-pacer-metronome', 'true');
+    });
+    document.getElementById('metronomeOff').addEventListener('click', function() {
+      document.getElementById('metronomeOn').classList.remove('active');
+      this.classList.add('active');
+      metronomeEnabled = false;
+      localStorage.setItem('reading-pacer-metronome', 'false');
+    });
+
+    // VN Mode toggle
+    document.getElementById('vnModeOn').addEventListener('click', function() {
+      document.getElementById('vnModeOff').classList.remove('active');
+      this.classList.add('active');
+      vnMode = true;
+      document.body.classList.add('vn-mode');
+      localStorage.setItem('reading-pacer-vnmode', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('vnModeOff').addEventListener('click', function() {
+      document.getElementById('vnModeOn').classList.remove('active');
+      this.classList.add('active');
+      vnMode = false;
+      document.body.classList.remove('vn-mode');
+      localStorage.setItem('reading-pacer-vnmode', 'false');
+      if (words.length > 0) renderText();
+    });
+
+    // VN Radius slider
+    document.getElementById('settingsVnRadius').addEventListener('input', function() {
+      vnRadius = parseInt(this.value);
+      document.getElementById('vnRadiusValue').textContent = this.value;
+      localStorage.setItem('reading-pacer-vnradius', this.value);
+      if (vnMode && words.length > 0) renderText();
+    });
+
+    // VN Sentence Buffer slider
+    document.getElementById('settingsVnSentenceBuffer').addEventListener('input', function() {
+      vnSentenceBuffer = parseInt(this.value);
+      document.getElementById('vnSentenceBufferValue').textContent = this.value;
+      localStorage.setItem('reading-pacer-vnsentencebuffer', this.value);
+      if (vnMode && words.length > 0) renderText();
+    });
+
+    // VN Border toggle
+    document.getElementById('vnBorderOn').addEventListener('click', function() {
+      document.getElementById('vnBorderOff').classList.remove('active');
+      this.classList.add('active');
+      vnBorder = true;
+      localStorage.setItem('reading-pacer-vnborder', 'true');
+      if (vnMode && words.length > 0) drawVnBorder();
+    });
+    document.getElementById('vnBorderOff').addEventListener('click', function() {
+      document.getElementById('vnBorderOn').classList.remove('active');
+      this.classList.add('active');
+      vnBorder = false;
+      localStorage.setItem('reading-pacer-vnborder', 'false');
+      drawVnBorder(); // Will hide the SVG
+    });
+
+    document.getElementById('settingsVolume').addEventListener('input', function() {
+      document.getElementById('volumeValue').textContent = this.value + '%';
+      applyVisualSettings();
+    });
+
+    // Animation settings
+    document.getElementById('settingsPopSize').addEventListener('input', function() {
+      const val = this.value;
+      document.getElementById('popSizeValue').textContent = val + '%';
+      document.documentElement.style.setProperty('--pop-scale', 1 + val / 100);
+      applyVisualSettings();
+    });
+
+    document.getElementById('settingsAnimSpeed').addEventListener('input', function() {
+      const val = this.value;
+      document.getElementById('animSpeedValue').textContent = (val / 100).toFixed(2) + 's';
+      document.documentElement.style.setProperty('--anim-speed', (val / 100) + 's');
+      applyVisualSettings();
+    });
+
+    // Initialize animation CSS vars
+    document.documentElement.style.setProperty('--pop-scale', 1.08);
+    document.documentElement.style.setProperty('--anim-speed', '0.15s');
+
+    // Web Audio API - zero latency sound
+    // Pattern: click1, click2, click2, click2, repeat (metronome pattern)
+    let audioCtx = null;
+    let clickBuffers = [null, null];
+    let pageFinishBuffer = null;
+    let clickPattern = 0;
+    let audioReady = false;
+    let metronomeEnabled = localStorage.getItem('reading-pacer-metronome') !== 'false';
+
+    // Restore metronome toggle UI state
+    if (!metronomeEnabled) {
+      document.getElementById('metronomeOn').classList.remove('active');
+      document.getElementById('metronomeOff').classList.add('active');
+    }
+
+    // Restore VN mode toggle UI state
+    if (vnMode) {
+      document.getElementById('vnModeOff').classList.remove('active');
+      document.getElementById('vnModeOn').classList.add('active');
+      document.body.classList.add('vn-mode');
+    }
+
+    // Restore VN radius slider
+    document.getElementById('settingsVnRadius').value = vnRadius;
+    document.getElementById('vnRadiusValue').textContent = vnRadius;
+
+    // Restore VN sentence buffer slider
+    document.getElementById('settingsVnSentenceBuffer').value = vnSentenceBuffer;
+    document.getElementById('vnSentenceBufferValue').textContent = vnSentenceBuffer;
+
+    // Restore VN border toggle
+    if (vnBorder) {
+      document.getElementById('vnBorderOff').classList.remove('active');
+      document.getElementById('vnBorderOn').classList.add('active');
+    }
+
+    // Update VN border on scroll
+    let vnBorderScrollTimeout;
+    window.addEventListener('scroll', function() {
+      if (vnBorder && vnMode) {
+        clearTimeout(vnBorderScrollTimeout);
+        vnBorderScrollTimeout = setTimeout(drawVnBorder, 16); // ~60fps throttle
+      }
+    });
+
+    // Embedded audio as base64
+    const CLICK1_B64 = '//OEZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAADAAAFcABcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFxcXFzCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsL///////////////////////////////////////////8AAABQTEFNRTMuMTAwBHgAAAAAAAAAADUIJAJcLQAB4AAABXB6+3Z4AAAAAAAAAAAAAAAAAAAA//PUZAAI8E97f6CMABabBlZfQSgAuJdmjACcgfl2UAAZAAAAFyAAAF/oiJuAAAgaD4fwfB/WD4fdWD4OHMHwQOYOAg78oGK0p//KBjo5QEP/1g+flwf5v///5cH5bI1EA5eDBAMYxvgGMY+QBjyApoQhCEoIB8XcQDgoRvOc5znIQhCEIQhznO5znOQhG+/+QhEb/8hzoIBwOBwjIT/////znOf5CEJ//5CCAcDjCYAAQOEwyJw+hnSpOnDgAAAlCYAsQADgNAGijNkEgjoRLlpGpzGRSBAy2xFm/YUFCzxgVgQBQ9wpGXlWi3QRABqsLbr4LnI1A0HEwxQ0VqGAOBuYgQqBqQCYq1mAsAoYIoZZjMkuAoHkCgKAgAcvymUYr4Q5gWAUFtm3ZkYtoIA8AanE0yfQxTpaIraoK+hCAEl+MgDIhMzQ+IgARIAdOFhy1WRsBWLFHRXbAsMvg7bwOVJmsuFQXb8ttS6NLlZbVYCXdWkYAAJZgMgDQDFtRB+kMjANAcMLAFkxJQA0EtbuWE6SAJGDeFYYQ4ESZxMAaFwAC5qCrsLRRVZq0lUrObYQ//PkZPkw5htbf8z4JBhapn7/j1AADCvqCoHdqVXa0kruS7JQABDc5zmGGeHcO1aXtWl7MxnNeIEACHgGVTONKoas4444zUjpZcnoYGoKQCA0FgFnsu0HP//7l+dC3sq1M/8a1Ko1yVRr60axuSqryJRGWvV//J7dM+0GQNfvQW/s1fj1qUvs6KgohAOvc+VSrCjwi1DKrV/DsrjspkMolc1DuZux4p2p0AAB+kdAFtAiVxiDbN98TZJ63jbBG9EechrLoYErcMdY55L7/RKnnGLs5j/8z6qa/T8fDomfqFUt/Nbf756XS5yPNR2oqU9v+UEke/1nqTugVRf/l6v9dWZzK3EaSEggJKRH8cDAIlszMpGkUWJVVYcSSeSIBCSiOaRgX+BuIRsAsFAyiEDSIwDiQEAYGGDgKARlAyMKWE2hYSIJF8ipOmqi8Xi8ykieTLpdNW1GReIsXjZ6ki8XjZJKkZF4vJUS6XXWijSS6KLVJVEyQEgpqZF4zICOafJkc0ipqkXi8bIt1JJJekkkkkj/rRRRR9aKKKKP0UUUUUUXWYkyRUusXiLF01RpJJJEWLpqj1oo0WUkXknWkkklRRRRSSSSSSrRSSSSSdExLqT0UWUXi8xkXi8bJPqSNhsU//OkZNsbehEtD+NQAIwQAjGdwAAAFGog4FyfhWCoKuKhqDTg79axE8SnesFYl/4lBXKgqd1gqd/iU7/WdywNf5b+Iga/kUxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
+    const PAGE_FINISH_B64 = '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AMyRBEcEJRZ109f9Temh2N+ZjdNRngNcPEPNH6af//VFhAPq//s0xPcAB6i9OeSCgWDRl6d88FBtRc3W5AACQCgMODEakWTV/+r/rUj0SUJ4gQGdcCyjFS9Kk3/9mDpgGKw4jB1aqAAHAIA4AAACNSHmRiii//q/6jMy1kogTooUCyQdUkjztUpFP/+WC8F9QGtoYVKLRlgABMhLHABtiDgRETJFv/qb/09Ah4zRVE8gZN+I//skxPuARny/Pe2ChWjNF+c9sFB0PLifTdD//TPCPgL+DfiJKrmAAAAAcDgAAAROCRY5Y/rW2kYhkErA1JAej8BIUTqSOlZv/////8xJIMsgNeQUCiDf///////6MAAAAAAsBo4a////apAy1nBGSZFwGR4Zgrs+//s0xPkABzy/N+yCh2DcF2d9oFCtgg7//1LHKB7xJyFq6gAAAACgOAAAAM0BKC////1HX7jpNQ6oGiLkepfTTv//oGoDYHAqqkAAAAJg4ADNzYzLbf//+s4ipZkLSKmJ2LwVGCwiqk2fWr//yuALjpLTVbywAACgYDgAAA3kYEfLM0h20mr/OvzAkTMP0Awk//skxP4AyAi7MeeChyDTl2Z5QFNMIOwbs+gpP//////1ERCAYLmM72ZAACAgaKXMNZ3Ayst6z4f/XSE8GvSFbF0gwGlzjMpL6art//////sI6AIPjImSlXcAAHZAOAAAALAQ9EEKMOabLdv/K3f5D21EqFrpSBCB//skxPSAxei5PeoCemCmF2c5QFNMA+3IHIiRNm06aLf/qWERIGnpCPl////Z///6VKTDxAADs8EkQIAISIeaJMn/zh/60ThgMi+mXA+I2GqBxQ4eoZqtMEU0P/9IL4AaiSMqv///////+qqqipgKgIA4AAAL46gM//skxPmARiS7NemCmmC0Fyc9QE9MWkDQl1igE00/x8H/0ywHvkCP9IiJVD8QBAQg1JfUk3//QFxAZ1gQxU1FyAS9QkYkBNHnAKgDRX8lH6y/LhgHKMWesibjkBCpGK33//9MZ0Dl8jUadwiHCHqAOAAAHrblMq3///skxPuAxwi7MewChaCYFyb5QE9MMkPE6D8QMh4XzUXeobCYSCAUyC2J+lX//3IYB78TQc////////TEBASDhLmA9ftnSf63/IedHEYCbibNuoZpZPAJqi2petv//cpAcGxq86j9dZgAeggIQDgAABi+r9Aa5Nc0//sUxP2ARNi5OeoCOmCpl2a9MENMP/UcM0VF00fUdHCcHWBjnQmp5+62//10gLQ0Q5///////9if2Zm6oAsjgEAADnCgAwQCxHwrr1NYmRBiLyl/6Y5wZCQ6BJJLBqAS//skxPoAxei5NewChSC9lyZ5sFDccX6H//50NsFvuagLcAlwOAAAAL1wLgRRlFgOAOcTwCwZb/dkVVIlNDpEENRaQAQwMikvroN//1gG46P///////QlVD04BMAAmRYgupJ4uhZt1JOGOBxt/6LJsmRdA8/WM2o6//s0xPwAx8S5K+oCmmDglyW5QFNMBjnIxWfrpL//5QARQ4WVS8qbCAqwOAAAAG2Q3w5o5woUA0IdNlJBMEafX1pmhcRGVKiSXkQqAwbI0/b//5kBFUt0EzMTlAGkBmQvkIQkOBQLqUL5FTdnzQwCAMGkSHHquoroogGISRf1f//mYI4bqgmZeoeqgDgAAAnJ//skxP4AxqS5MeoCmmCtlyZ5QE9MOuVCZOCtvdjnirJIs+frfwUsSKR6CQD9lqzfqBRC+BhVQwzz9LSb//////mINyzL///////6ymIWGjJgwBtMpp3BCzIrrfxK1/P+3hBR+ysS+0JGtDNevsOe5QA5RJxf9Fv///sUxP8AhqS3L+oCemCtF2Y5QEtM////+oQULv///////9OKmgCbiKA4EDAAUjCHDZJ4qAOIm6XpayQJEfIY20A2Y2S1/IAtADHhiRf1///WNQeh5H0//+489XBmgF5n//s0xPQABpC3L+oCGmDCFub9UENMZxwACsR3LAQhCS+3eTAEgpac6K1NU+3mdQXCv//zMKMs////f9fXmM7FVdrMAAzNADgQUAA/ROugiCeR3of1GApMTgS5keOBMQeD/ly4GUxt9///1Aehff//Yq1pFMO7W6Fht3THAYABDR2uwrwGKAaEa6j3GcJYMWhp//skxP8AxwS3L+qCGmDAlyX5QEtMpTZRdAeUiL6/UOWtAAYJa+r//9YK+YKZmQgIiKA4AAAZFJaAXPJJ9+GQBoGo8jFWozC3Iw0U6DdZDJkAfIk29b///hIF/u5mZXVZAAXAAHUWAOAjNEidICgyaS1JVBkw8qGd//skxPwAxiy3M+oCGmC7Fua5QDdMEKI1CMBtdXzOoLrK//8C9PqgKXXV79y7uMvAABAADlAhDA4CzKIGBfqrLqXe7euY5PRZ+Zd3VAOSHpNFlHvOVhmm////////rFsRj9zL3s7EABQAAAwJNACARCxdMkUUKFFz//s0xP0AyCi5LewekmDqlyW5jMy0gd4ljek6jEgKT6387iDX//8Ejj7u3N7N1gAUcAHhy4zAUxlLX2h180ebZBgHFu3qtynyvWVOcBNH////////6wuJ3/9viChP/cze7tAAGAAA4VUUETwbg02fkaW2RCBMxYARe9hRd1j11BSN////////UF6VC928y8yw//skxPyAhwS3M+oBumC8oOg9QDcUABwAAGwVQbnBcyI6DVpEhnXRImggcfTGEednUc0UH85hY+///KgDUDl3N5t1JzC2AqVMobPWeu3sBxXRGAECOIohrvCqmrYzbyjgFw////////6JgKEOulVay7jNu7QAHAAO//skxPoABoy3OemBumDJFuc9MDdMsEWCByKmzEWnQzIp29+pDg6RNDRIuHmpe0e3WAot46qgFbQ////////qEpmSG2bq7vMsDimExWotDseTQkoYom5TE+qIcgPKo+xxedRryGorAaAL//8PJqqsuq2pnLIAGAAA//skxPgABcS3MemBumDIFuf9QCsUy3AZKFlQzJJosiyxFA+86m3N6yVDsMo0QtXl5JIGzZW//6AEjuvLDdAN2gAcAAAyHJdZcWvlgenJUY7+YDtemWT+p1DMssLON//1AZWGcAVwaHA4EAABEJLzrJF/e6xYepbx//skxPkABsC3O+7iAcCsFug9QB8Q+H4iDMRyl+LKnANTRKrelrdBBBv/ghReTJ//2f////6FiJ3h4iIeVAHtQAm5qWe8bz3Iw7koZxOu25cHuAxCUuQ7ktXO1cVEBxE5Xdx/Ibt5Siy1mJuya3z7PJXl9/Cm6U97//skxPoABoC1Qeyhp6C1Fqh9lDT04oqGA6HTGo51YrKqyJ395GSJV5TMO0Sl70znfzTAKVUXntEZu9AXoT/l////2q1qd4h3h3dQB6iADeMpEkJQI+hDkePkhTOQUWE+AcxYjtEJMouohqBH0LknyUktXYtpLZE8//skxPqAxby1PeiBWKDBlyb5l8g85MLCmgJED6rSCnDInmaVijQXurW2K6PUryClhXidI5Smi7EIIuFRMuFSVMUmVhU08485++FAIiEgaKu//9NMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//skxPyAxui3N+ymTqCvFyc5QDcUVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sUxPyABeC3N+mBWKCgFue9ACsUVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tUxPaABwi5J+oBumHAmmT9l4scVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//s0xPeDzhy3Jeek3CAAAD/AAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+    const CLICK2_B64 = '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';
+
+    function b64ToArrayBuffer(b64) {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    // Init audio on every play attempt until ready
+    async function initAudio() {
+      if (audioReady) return true;
+      if (audioCtx) return false; // already trying
+
+      log('Audio: initializing...', 'i');
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+          latencyHint: 'interactive'
+        });
+        log('Audio: ctx state=' + audioCtx.state, 'i');
+
+        const buf1 = b64ToArrayBuffer(CLICK1_B64);
+        const buf2 = b64ToArrayBuffer(CLICK2_B64);
+        log('Audio: decoded base64', 'i');
+
+        clickBuffers[0] = await audioCtx.decodeAudioData(buf1);
+        clickBuffers[1] = await audioCtx.decodeAudioData(buf2);
+        const bufPage = b64ToArrayBuffer(PAGE_FINISH_B64);
+        pageFinishBuffer = await audioCtx.decodeAudioData(bufPage);
+        log('Audio: buffers ready ' + clickBuffers[0].duration.toFixed(3) + 's', 'i');
+
+        audioReady = true;
+        log('Audio: READY!', 'i');
+        return true;
+      } catch (e) {
+        log('Audio: ERROR ' + e.message, 'e');
+        audioCtx = null;
+        return false;
+      }
+    }
+
+    async function playClick() {
+      if (!metronomeEnabled) return;
+      if (!audioReady) {
+        await initAudio();
+        if (!audioReady) return;
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      const buffer = clickPattern === 0 ? clickBuffers[0] : clickBuffers[1];
+      clickPattern = (clickPattern + 1) % 4;
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highshelf';
+      filter.frequency.value = 2000;
+      filter.gain.value = -12;
+      const gain = audioCtx.createGain();
+      gain.gain.value = parseInt(document.getElementById('settingsVolume').value) / 100;
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      source.start(0);
+    }
+
+    function playWordSound() { log('playWordSound called', 'i'); playClick(); }
+    async function playPageFinishSound() {
+      if (!audioReady) {
+        await initAudio();
+        if (!audioReady) return;
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      const source = audioCtx.createBufferSource();
+      source.buffer = pageFinishBuffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highshelf';
+      filter.frequency.value = 2000;
+      filter.gain.value = -12;
+      const gain = audioCtx.createGain();
+      gain.gain.value = parseInt(document.getElementById('settingsVolume').value) / 100;
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      source.start(0);
+    }
+
+
+    // ==================== LIBRARY SYSTEM ====================
+    
+    // IndexedDB setup
+    const LIBRARY_DB_NAME = 'ReadingPacerLibrary';
+    const LIBRARY_DB_VERSION = 1;
+    let libraryDB = null;
+
+    function openLibraryDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(LIBRARY_DB_NAME, LIBRARY_DB_VERSION);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          libraryDB = request.result;
+          resolve(libraryDB);
+        };
+        
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('items')) {
+            const store = db.createObjectStore('items', { keyPath: 'id' });
+            store.createIndex('lastAccess', 'lastAccess', { unique: false });
+          }
+        };
+      });
+    }
+
+    // Get library metadata from localStorage
+    function getLibraryMeta() {
+      try {
+        return JSON.parse(localStorage.getItem('libraryMeta') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // Save library metadata to localStorage
+    function saveLibraryMeta(meta) {
+      localStorage.setItem('libraryMeta', JSON.stringify(meta));
+    }
+
+    // Generate unique ID
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // Extract name from first sentence
+    function extractName(text) {
+      const cleaned = text.replace(/\s+/g, ' ').trim();
+      const firstSentence = cleaned.split(/[.!?]/)[0];
+      return firstSentence.substring(0, 50) + (firstSentence.length > 50 ? '...' : '');
+    }
+
+    // Save item to library
+    async function saveToLibrary(text, pagesData = null) {
+      if (!libraryDB) await openLibraryDB();
+      
+      const id = generateId();
+      const name = extractName(text);
+      const now = Date.now();
+      
+      // Save heavy data to IndexedDB
+      const item = {
+        id,
+        text,
+        pages: pagesData,
+        createdAt: now
+      };
+      
+      await new Promise((resolve, reject) => {
+        const tx = libraryDB.transaction('items', 'readwrite');
+        const store = tx.objectStore('items');
+        const request = store.put(item);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      // Save metadata to localStorage
+      const meta = getLibraryMeta();
+      meta.unshift({
+        id,
+        name,
+        lastAccess: now,
+        createdAt: now,
+        currentIndex: 0,
+        currentPage: 0,
+        hasPages: !!pagesData,
+        totalPages: pagesData ? pagesData.length : 1
+      });
+      saveLibraryMeta(meta);
+      
+      renderLibrary();
+      return id;
+    }
+
+    // Update library item access time and position
+    function updateLibraryItem(id, updates) {
+      const meta = getLibraryMeta();
+      const idx = meta.findIndex(m => m.id === id);
+      if (idx >= 0) {
+        Object.assign(meta[idx], updates, { lastAccess: Date.now() });
+        // Move to top (most recent)
+        const item = meta.splice(idx, 1)[0];
+        meta.unshift(item);
+        saveLibraryMeta(meta);
+      }
+    }
+
+    // Load item from library
+    async function loadFromLibrary(id) {
+      if (!libraryDB) await openLibraryDB();
+      
+      const item = await new Promise((resolve, reject) => {
+        const tx = libraryDB.transaction('items', 'readonly');
+        const store = tx.objectStore('items');
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      if (!item) return null;
+      
+      const meta = getLibraryMeta().find(m => m.id === id);
+      updateLibraryItem(id, {});
+      
+      return { ...item, meta };
+    }
+
+    // Delete item from library
+    async function deleteFromLibrary(id) {
+      if (!libraryDB) await openLibraryDB();
+      
+      // Delete from IndexedDB
+      await new Promise((resolve, reject) => {
+        const tx = libraryDB.transaction('items', 'readwrite');
+        const store = tx.objectStore('items');
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      // Delete from metadata
+      const meta = getLibraryMeta().filter(m => m.id !== id);
+      saveLibraryMeta(meta);
+      
+      // Also update cached list
+      if (cachedLibraryList) {
+        cachedLibraryList = cachedLibraryList.filter(m => m.id !== id);
+      }
+      
+      renderLibrary();
+    }
+
+    // Rename library item
+    function renameLibraryItem(id, newName) {
+      const meta = getLibraryMeta();
+      const item = meta.find(m => m.id === id);
+      if (item) {
+        item.name = newName;
+        saveLibraryMeta(meta);
+      }
+    }
+
+    // Current active library item
+    let currentLibraryId = null;
+    let cachedLibraryList = null;
+
+    // Render library sidebar
+    function renderLibrary() {
+      const list = document.getElementById('libraryList');
+      // Use cached list if available (keeps order stable while browsing)
+      if (!cachedLibraryList) {
+        cachedLibraryList = getLibraryMeta();
+      }
+      const meta = cachedLibraryList;
+      
+      if (meta.length === 0) {
+        list.innerHTML = '<div class="library-empty">אין פריטים בספרייה</div>';
+        return;
+      }
+      
+      list.innerHTML = meta.map(item => {
+        const date = new Date(item.lastAccess).toLocaleDateString('he-IL');
+        const activeClass = item.id === currentLibraryId ? 'active' : '';
+        const pageInfo = item.hasPages ? ` • עמוד ${(item.currentPage || 0) + 1}/${item.totalPages || '?'}` : '';
+        return `
+          <div class="library-item ${activeClass}" data-id="${item.id}">
+            <div class="library-item-content">
+              <div class="library-item-name">${item.name}</div>
+              <div class="library-item-meta">${date}${pageInfo}</div>
+            </div>
+            <button class="library-item-rename" title="שנה שם">✏️</button>
+            <button class="library-item-delete" title="מחק">🗑️</button>
+          </div>
+        `;
+      }).join('');
+      
+      // Add event listeners
+      list.querySelectorAll('.library-item').forEach(el => {
+        const id = el.dataset.id;
+        
+        // Click to load
+        el.addEventListener('click', async (e) => {
+          if (e.target.classList.contains('library-item-delete')) return;
+          if (e.target.classList.contains('library-item-name') && 
+              e.target.contentEditable === 'true') return;
+          
+          const item = await loadFromLibrary(id);
+          if (item) {
+            currentLibraryId = id;
+            
+            // Load the text/pages
+            if (item.pages && item.pages.length > 0) {
+              pages = item.pages;
+              hasPages = true;
+              currentPage = item.meta?.currentPage || 0;
+              initCurrentPage().then(() => {
+                currentIndex = item.meta?.currentIndex || 0;
+                renderText();
+                updateWordProgress();
+              });
+              document.getElementById('inputArea').style.display = 'none';
+              document.getElementById('textDisplay').style.display = 'block';
+              updatePageNav();
+            } else {
+              document.getElementById('textInput').value = item.text;
+              dirtyText = item.text;
+              cleanTextAsync(item.text).then(clean => {
+                cleanedText = clean;
+                initPacerAsync(useCleanText ? cleanedText : dirtyText).then(() => {
+                  currentIndex = item.meta?.currentIndex || 0;
+                  renderText();
+                  updateWordProgress();
+                });
+              });
+            }
+            
+            renderLibrary();
+          }
+        });
+        
+        // Double-click to rename
+        const nameEl = el.querySelector('.library-item-name');
+        nameEl.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          nameEl.contentEditable = 'true';
+          nameEl.focus();
+          
+          // Select all text
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+        
+        nameEl.addEventListener('blur', () => {
+          nameEl.contentEditable = 'false';
+          renameLibraryItem(id, nameEl.textContent.trim());
+        });
+        
+        nameEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            nameEl.blur();
+          }
+          if (e.key === 'Escape') {
+            nameEl.contentEditable = 'false';
+            renderLibrary(); // Restore original name
+          }
+        });
+        
+        // Rename button
+        el.querySelector('.library-item-rename').addEventListener('click', (e) => {
+          e.stopPropagation();
+          nameEl.contentEditable = 'true';
+          nameEl.focus();
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+
+        // Delete button
+        el.querySelector('.library-item-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (confirm('למחוק את הפריט מהספרייה?')) {
+            deleteFromLibrary(id);
+            if (currentLibraryId === id) currentLibraryId = null;
+          }
+        });
+      });
+    }
+
+    // Toggle library sidebar
+    function toggleLibrary() {
+      const sidebar = document.getElementById('librarySidebar');
+      if (sidebar.classList.contains('open')) {
+        closeLibrary();
+      } else {
+        openLibrary();
+      }
+    }
+
+    function openLibrary() {
+      document.getElementById('librarySidebar').classList.add('open');
+      document.getElementById('libraryOverlay').classList.add('open');
+      cachedLibraryList = null; // Force refresh on open
+      renderLibrary();
+    }
+
+    function closeLibrary() {
+      document.getElementById('librarySidebar').classList.remove('open');
+      document.getElementById('libraryOverlay').classList.remove('open');
+    }
+
+    // Library button handlers
+    document.getElementById('libraryBtn').addEventListener('click', toggleLibrary);
+    document.getElementById('libraryClose').addEventListener('click', closeLibrary);
+    document.getElementById('libraryOverlay').addEventListener('click', closeLibrary);
+
+    // Save current position periodically
+    setInterval(() => {
+      if (currentLibraryId && words.length > 0) {
+        updateLibraryItem(currentLibraryId, {
+          currentIndex,
+          currentPage: hasPages ? currentPage : 0
+        });
+      }
+    }, 5000);
+
+    // Initialize library DB on load
+    openLibraryDB().then(() => {
+      log('Library DB initialized');
+      renderLibrary();
+    });
+
+    // ==================== END LIBRARY SYSTEM ====================
+
+
     // Load visual settings on startup
     loadVisualSettings();
 
@@ -2797,24 +4407,559 @@
       }
     }
 
-    // Save state on navigation
+    // Save state on navigation + play sounds
     const originalNextChunk = nextChunk;
-    nextChunk = function() { originalNextChunk(); saveState(); };
+    nextChunk = function() {
+      const prevPage = currentPage;
+      originalNextChunk();
+      saveState();
+      playWordSound();
+    };
 
     const originalPrevChunk = prevChunk;
-    prevChunk = function() { originalPrevChunk(); saveState(); };
+    prevChunk = function() {
+      originalPrevChunk();
+      saveState();
+      playWordSound();
+    };
 
     const originalGoToPage = goToPage;
-    goToPage = function(pageIdx, keepAutoAdvance) { originalGoToPage(pageIdx, keepAutoAdvance); saveState(); };
+    goToPage = function(pageIdx, keepAutoAdvance) {
+      originalGoToPage(pageIdx, keepAutoAdvance);
+      saveState();
+    };
 
     const originalSetPosition = setPosition;
     setPosition = function(idx) {
       originalSetPosition(idx);
       saveState();
+      playWordSound();
+    };
+
+    // ============================================
+    // FIGURES PANEL FUNCTIONALITY
+    // ============================================
+
+    let figureImages = [];  // Array of image URLs/paths per page
+    let figuresLoaded = false;
+    let currentFigurePage = 0;
+    let pendingPdfFile = null;  // Store PDF for image extraction after text loads
+
+    // Toggle figures panel
+    document.getElementById('figuresBtn').addEventListener('click', () => {
+      const panel = document.getElementById('figuresPanel');
+      panel.classList.toggle('open');
+      document.body.classList.toggle('figures-panel-open', panel.classList.contains('open'));
+      localStorage.setItem('reading-pacer-panel-open', panel.classList.contains('open'));
+      if (panel.classList.contains('open') && figuresLoaded) {
+        updateFiguresDisplay();
+      }
+    });
+
+    function closeFiguresPanel() {
+      document.getElementById('figuresPanel').classList.remove('open');
+      document.body.classList.remove('figures-panel-open');
+      localStorage.setItem('reading-pacer-panel-open', 'false');
+    }
+
+    // Restore panel state
+    function restorePanelState() {
+      const wasOpen = localStorage.getItem('reading-pacer-panel-open') === 'true';
+      if (wasOpen) {
+        document.getElementById('figuresPanel').classList.add('open');
+        document.body.classList.add('figures-panel-open');
+      }
+    }
+
+    // Convert file to base64 data URL
+    function fileToDataURL(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Extract page images from PDF using PDF.js (images only, not text)
+    async function extractPdfPageImages(file) {
+      log('extractPdfPageImages starting', 'i');
+      showLoading('מחלץ עמודים מ-PDF...');
+
+      try {
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Read file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        log('PDF loaded into memory', 'i');
+
+        // Load the PDF document
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+        log(`PDF has ${numPages} pages`, 'i');
+
+        // Render pages to images
+        figureImages = [];
+        const scale = 1.5; // Render at 1.5x for decent quality
+
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+          showLoading(`מחלץ עמוד ${pageNum}/${numPages}...`);
+          const page = await pdf.getPage(pageNum);
+
+          // Render page to canvas
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+
+          await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+          }).promise;
+
+          // Convert to data URL
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          figureImages.push({
+            url: dataUrl,
+            name: `page-${String(pageNum).padStart(2, '0')}.jpg`
+          });
+
+          log(`Page ${pageNum} rendered`, 'i');
+        }
+
+        // Setup figures
+        figuresLoaded = figureImages.length > 0;
+        if (figuresLoaded) {
+          currentFigurePage = 0;
+          updateFiguresDisplay();
+          await saveFigures();
+
+          // Open figures panel
+          const panel = document.getElementById('figuresPanel');
+          if (panel && !panel.classList.contains('open')) {
+            panel.classList.add('open');
+            document.body.classList.add('figures-panel-open');
+            localStorage.setItem('reading-pacer-panel-open', 'true');
+          }
+        }
+
+        hideLoading();
+        log(`PDF page images extracted: ${figureImages.length} pages`, 'i');
+
+      } catch (e) {
+        hideLoading();
+        log(`PDF image extraction error: ${e.message}`, 'e');
+        alert('שגיאה בחילוץ עמודים מה-PDF: ' + e.message);
+      }
+    }
+
+    // Load figures from dropped folder or file input
+    async function loadFiguresFromFiles(files) {
+      log(`loadFiguresFromFiles called with ${files.length} files`, 'i');
+
+      figureImages = [];
+      const imageFiles = Array.from(files).filter(f => {
+        const isImage = f.type.startsWith('image/') || /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name);
+        return isImage;
+      });
+
+      log(`Filtered to ${imageFiles.length} image files`, 'i');
+
+      // Sort by filename (expecting page-01.png, page-02.png, etc.)
+      imageFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+
+      // Convert to base64 for persistence
+      for (let idx = 0; idx < imageFiles.length; idx++) {
+        const file = imageFiles[idx];
+        const dataUrl = await fileToDataURL(file);
+        if (dataUrl) {
+          figureImages[idx] = {
+            url: dataUrl,
+            name: file.name
+          };
+        }
+      }
+
+      figuresLoaded = figureImages.length > 0;
+      log(`figuresLoaded = ${figuresLoaded}, count = ${figureImages.length}`, 'i');
+
+      if (figuresLoaded) {
+        // Clamp to valid range
+        const textPage = typeof currentPage !== 'undefined' ? currentPage : 0;
+        currentFigurePage = Math.min(textPage, figureImages.length - 1);
+        currentFigurePage = Math.max(0, currentFigurePage);
+        updateFiguresDisplay();
+        saveFigures();
+      } else {
+        log('No images loaded!', 'w');
+      }
+    }
+
+    // IndexedDB for large figure storage
+    const DB_NAME = 'reading-pacer-db';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'figures';
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+      });
+    }
+
+    // Save figures to IndexedDB
+    async function saveFigures() {
+      if (!figuresLoaded || figureImages.length === 0) return;
+      try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put(figureImages, 'pages');
+        await new Promise((resolve, reject) => {
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+        log(`Saved ${figureImages.length} figures to IndexedDB`, 'i');
+      } catch (e) {
+        log(`Failed to save figures: ${e.message}`, 'e');
+      }
+    }
+
+    // Restore figures from IndexedDB
+    async function restoreFigures() {
+      try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get('pages');
+
+        const saved = await new Promise((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        db.close();
+
+        if (!saved || !Array.isArray(saved)) return;
+
+        figureImages = saved;
+        figuresLoaded = figureImages.length > 0;
+
+        if (figuresLoaded) {
+          const textPage = typeof currentPage !== 'undefined' ? currentPage : 0;
+          currentFigurePage = Math.min(textPage, figureImages.length - 1);
+          currentFigurePage = Math.max(0, currentFigurePage);
+          updateFiguresDisplay();
+          log(`Restored ${figureImages.length} figures from IndexedDB`, 'i');
+        }
+      } catch (e) {
+        log(`Failed to restore figures: ${e.message}`, 'e');
+      }
+    }
+
+    // Update figures display - show all pages as thumbnails
+    function updateFiguresDisplay() {
+      log(`updateFiguresDisplay called`, 'i');
+      const content = document.getElementById('figuresContent');
+
+      if (!figuresLoaded || figureImages.length === 0) {
+        content.innerHTML = `
+          <div class="figures-placeholder">
+            <p>גרור תיקיית תמונות</p>
+          </div>`;
+        return;
+      }
+
+      // Build thumbnails for all pages
+      let html = '';
+      figureImages.forEach((fig, idx) => {
+        const isActive = idx === currentFigurePage ? 'active' : '';
+        html += `
+          <div class="page-thumb ${isActive}" data-page="${idx}" onclick="goToPageFromThumb(${idx})" ondblclick="openLightbox('${fig.url}')">
+            <img src="${fig.url}" alt="Page ${idx + 1}">
+            <span class="page-thumb-label">${idx + 1}</span>
+          </div>`;
+      });
+
+      content.innerHTML = html;
+      log(`  Rendered ${figureImages.length} thumbnails`, 'i');
+
+      // Position current page as second from top
+      setTimeout(() => {
+        updateActiveThumb();
+      }, 50);
+    }
+
+    // Update just the active state without rebuilding
+    function updateActiveThumb() {
+      const thumbs = document.querySelectorAll('.page-thumb');
+      const content = document.getElementById('figuresContent');
+
+      thumbs.forEach((thumb, idx) => {
+        thumb.classList.toggle('active', idx === currentFigurePage);
+      });
+
+      // Position: previous page at top, current page second
+      if (currentFigurePage > 0 && thumbs.length > 1) {
+        const prevThumb = thumbs[currentFigurePage - 1];
+        if (prevThumb) {
+          // Scroll so previous page is at the very top
+          content.scrollTo({
+            top: prevThumb.offsetTop - content.offsetTop,
+            behavior: 'smooth'
+          });
+        }
+      } else {
+        // First page - just scroll to top
+        content.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    // Click thumbnail to navigate
+    function goToPageFromThumb(pageIdx) {
+      if (typeof goToPage === 'function' && hasPages) {
+        goToPage(pageIdx);
+      }
+      currentFigurePage = pageIdx;
+      updateActiveThumb();
+    }
+
+    // Lightbox with zoom/pan
+    let lbZoom = 1;
+    let lbPanX = 0;
+    let lbPanY = 0;
+    let lbDragging = false;
+    let lbLastX = 0;
+    let lbLastY = 0;
+
+    function openLightbox(src) {
+      const lightbox = document.getElementById('figureLightbox');
+      const img = document.getElementById('lightboxImg');
+      img.src = src;
+      lbZoom = 1;
+      lbPanX = 0;
+      lbPanY = 0;
+      updateLightboxTransform();
+      lightbox.classList.add('active');
+      lightbox.classList.remove('zoomed');
+    }
+
+    function closeLightbox() {
+      const lightbox = document.getElementById('figureLightbox');
+      lightbox.classList.remove('active', 'zoomed', 'dragging');
+      lbZoom = 1;
+      lbPanX = 0;
+      lbPanY = 0;
+    }
+
+    function updateLightboxTransform() {
+      const img = document.getElementById('lightboxImg');
+      img.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbZoom})`;
+    }
+
+    // Zoom with scroll wheel
+    document.getElementById('figureLightbox').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const lightbox = document.getElementById('figureLightbox');
+      const img = document.getElementById('lightboxImg');
+      const rect = img.getBoundingClientRect();
+
+      // Mouse position relative to image center
+      const imgCenterX = rect.left + rect.width / 2;
+      const imgCenterY = rect.top + rect.height / 2;
+      const mouseX = e.clientX - imgCenterX;
+      const mouseY = e.clientY - imgCenterY;
+
+      // Zoom factor
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.5, Math.min(10, lbZoom * delta));
+
+      // Adjust pan to zoom toward cursor
+      const zoomRatio = newZoom / lbZoom;
+      lbPanX = mouseX - (mouseX - lbPanX) * zoomRatio;
+      lbPanY = mouseY - (mouseY - lbPanY) * zoomRatio;
+
+      lbZoom = newZoom;
+      lightbox.classList.toggle('zoomed', lbZoom > 1.05);
+      updateLightboxTransform();
+    }, { passive: false });
+
+    // Pan with mouse drag
+    document.getElementById('figureLightbox').addEventListener('mousedown', (e) => {
+      if (lbZoom > 1.05) {
+        lbDragging = true;
+        lbLastX = e.clientX;
+        lbLastY = e.clientY;
+        document.getElementById('figureLightbox').classList.add('dragging');
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (lbDragging) {
+        lbPanX += e.clientX - lbLastX;
+        lbPanY += e.clientY - lbLastY;
+        lbLastX = e.clientX;
+        lbLastY = e.clientY;
+        updateLightboxTransform();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (lbDragging) {
+        lbDragging = false;
+        document.getElementById('figureLightbox').classList.remove('dragging');
+      }
+    });
+
+    // Click to close only if not zoomed
+    document.getElementById('figureLightbox').addEventListener('click', (e) => {
+      if (lbZoom <= 1.05 && e.target.id === 'figureLightbox') {
+        closeLightbox();
+      }
+    });
+
+    // Double-click to reset zoom or close
+    document.getElementById('figureLightbox').addEventListener('dblclick', () => {
+      if (lbZoom > 1.05) {
+        lbZoom = 1;
+        lbPanX = 0;
+        lbPanY = 0;
+        updateLightboxTransform();
+        document.getElementById('figureLightbox').classList.remove('zoomed');
+      } else {
+        closeLightbox();
+      }
+    });
+
+    // Close lightbox on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape') {
+        closeLightbox();
+        closeFiguresPanel();
+      }
+    });
+
+    // Drag & drop for figures panel
+    const figuresContentEl = document.getElementById('figuresContent');
+    let dragCounter = 0;
+
+    figuresContentEl.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter++;
+      figuresContentEl.classList.add('drag-over');
+      log('Figures drag enter', 'i');
+    });
+
+    figuresContentEl.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter--;
+      if (dragCounter === 0) {
+        figuresContentEl.classList.remove('drag-over');
+      }
+    });
+
+    figuresContentEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
+    figuresContentEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter = 0;
+      figuresContentEl.classList.remove('drag-over');
+      log('Figures drop event', 'i');
+
+      // Handle dropped files or folder
+      const items = e.dataTransfer.items;
+      const droppedFiles = e.dataTransfer.files;
+
+      // Try webkitGetAsEntry for folder support
+      if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+        const files = [];
+        const processEntry = (entry) => {
+          return new Promise((resolve) => {
+            if (entry.isFile) {
+              entry.file(f => {
+                files.push(f);
+                resolve();
+              }, () => resolve());
+            } else if (entry.isDirectory) {
+              const reader = entry.createReader();
+              const readEntries = () => {
+                reader.readEntries(async (entries) => {
+                  if (entries.length === 0) {
+                    resolve();
+                  } else {
+                    for (const ent of entries) {
+                      await processEntry(ent);
+                    }
+                    readEntries(); // Continue reading (folders can have >100 entries)
+                  }
+                }, () => resolve());
+              };
+              readEntries();
+            } else {
+              resolve();
+            }
+          });
+        };
+
+        const promises = [];
+        for (let i = 0; i < items.length; i++) {
+          const entry = items[i].webkitGetAsEntry();
+          if (entry) {
+            promises.push(processEntry(entry));
+          }
+        }
+
+        Promise.all(promises).then(() => {
+          log(`Processed ${files.length} files from drop`, 'i');
+          if (files.length > 0) {
+            loadFiguresFromFiles(files);
+          }
+        });
+      } else if (droppedFiles && droppedFiles.length > 0) {
+        // Fallback: direct file drop (no folder support)
+        log(`Fallback: ${droppedFiles.length} files dropped`, 'i');
+        loadFiguresFromFiles(droppedFiles);
+      }
+    });
+
+    // Sync figures with page changes
+    const originalGoToPageForFigures = goToPage;
+    goToPage = function(pageIdx, keepAutoAdvance) {
+      originalGoToPageForFigures(pageIdx, keepAutoAdvance);
+      if (figuresLoaded) {
+        currentFigurePage = Math.min(pageIdx, figureImages.length - 1);
+        if (document.getElementById('figuresPanel').classList.contains('open')) {
+          updateActiveThumb();
+        }
+      }
     };
 
     // Restore state on load instead of sample text
     restoreState();
+
+    // Init progress bar drag
+    initProgressBarDrag();
+
+    // Restore panel state and figures
+    restorePanelState();
+    setTimeout(restoreFigures, 100);
   </script>
 </body>
 </html>
