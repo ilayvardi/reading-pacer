@@ -480,6 +480,20 @@
       box-shadow: 0 0 0 2px var(--highlight-current-border);
     }
 
+    /* Half-bold mode (הדגשת חצי) - bold first letters instead of highlight for current chunk */
+    .half-bold-mode .highlight-current {
+      background: none;
+      box-shadow: none;
+    }
+    .half-bold-prefix {
+      font-weight: bold;
+      color: var(--half-bold-color, inherit);
+      font-size: var(--half-bold-font-size, 1em);
+    }
+    .half-bold-suffix {
+      font-weight: normal;
+    }
+
     /* Vertical Progress Bar */
     .progress-bar-container {
       position: fixed;
@@ -696,6 +710,7 @@
     .library-list {
       flex: 1;
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 10px;
     }
 
@@ -846,7 +861,7 @@
       position: absolute;
       top: calc(50% - 70px);
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%) scale(1);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -859,10 +874,14 @@
       border-radius: 16px;
       padding: 50px 80px;
       cursor: default;
+      opacity: 1;
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
     .drop-prompt.hidden {
-      display: none;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+      pointer-events: none;
     }
 
     /* When prompt is hidden, sample text becomes full opacity and interactive */
@@ -871,6 +890,7 @@
       pointer-events: auto;
       cursor: text;
       overflow-y: auto;
+      overscroll-behavior: contain;
     }
 
     /* When prompt is visible, clicking the zone dismisses it */
@@ -1093,12 +1113,18 @@
       right: 1px;
       bottom: 0;
       background: rgba(0,0,0,0.85);
-      display: none;
+      display: flex;
       justify-content: center;
       align-items: center;
       z-index: 10001;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
     }
-    .modal-overlay.active { display: flex; }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
     .paste-modal-content {
       background: var(--bg-secondary);
       border-radius: 16px;
@@ -1106,6 +1132,11 @@
       max-width: 600px;
       width: 90%;
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      transform: scale(0.95) translateY(-10px);
+      transition: transform 0.25s ease;
+    }
+    .modal-overlay.active .paste-modal-content {
+      transform: scale(1) translateY(0);
     }
     .paste-modal-content h2 {
       color: var(--text-primary);
@@ -1434,11 +1465,19 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       z-index: 9999;
-      display: none;
+      display: flex;
       flex-direction: column;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
     }
-    #debugPanel.open { display: flex; }
+    #debugPanel.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
     #debugHeader {
       background: var(--bg-secondary);
       color: var(--text-secondary);
@@ -1459,6 +1498,7 @@
     #debugLog {
       height: 200px;
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 8px;
       font-family: monospace;
       font-size: 11px;
@@ -1478,20 +1518,30 @@
       top: 50px;
       left: 50%;
       transform: translateX(-50%) translateY(-100%);
-      width: 400px;
-      max-width: 90vw;
+      width: 760px;
+      max-width: 96vw;
       max-height: calc(100vh - 100px);
       overflow-y: auto;
+      overscroll-behavior: contain;
       background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-top: none;
       border-radius: 0 0 12px 12px;
-      padding: 20px;
+      padding: 24px;
       z-index: 999;
       opacity: 0;
       pointer-events: none;
       transition: transform 0.3s ease, opacity 0.3s ease;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 750px) {
+      .settings-dropdown {
+        width: 400px;
+        grid-template-columns: 1fr;
+      }
     }
     .settings-dropdown.open {
       transform: translateX(-50%) translateY(0);
@@ -1499,14 +1549,14 @@
       pointer-events: auto;
     }
     .settings-section {
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .settings-section:last-child {
       margin-bottom: 0;
-      padding-bottom: 0;
-      border-bottom: none;
+      padding: 16px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+    .settings-section:nth-child(even) {
+      background: color-mix(in srgb, var(--bg-tertiary) 60%, var(--bg-secondary));
     }
     .settings-section h3 {
       margin: 0 0 12px 0;
@@ -1554,6 +1604,34 @@
       cursor: pointer;
       padding: 2px;
     }
+    .color-with-opacity {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-with-opacity input[type="range"] {
+      width: 80px;
+      flex-shrink: 0;
+    }
+    .color-with-opacity .opacity-value {
+      min-width: 35px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .slider-with-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-with-value input[type="range"] {
+      width: 100px;
+      flex-shrink: 0;
+    }
+    .slider-with-value .slider-value {
+      min-width: 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
     .settings-row input[type="range"] {
       flex: 1;
       min-width: 100px;
@@ -1561,28 +1639,41 @@
     }
     .settings-toggle {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
     .settings-toggle button {
-      padding: 6px 12px;
+      padding: 8px 14px;
       font-size: 13px;
-      min-width: auto;
-      background: var(--bg-tertiary);
+      min-width: 50px;
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       color: var(--text-secondary);
       border-radius: 6px;
       cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .settings-toggle button:hover {
+      background: var(--bg-primary);
+      border-color: var(--accent);
     }
     .settings-toggle button.active {
       background: var(--accent);
       color: white;
       border-color: var(--accent);
     }
+    .settings-toggle.align-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
     .range-value {
-      min-width: 45px;
+      min-width: 50px;
       text-align: left;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
+      background: var(--bg-secondary);
+      padding: 4px 8px;
+      border-radius: 4px;
     }
 
     /* Pages Panel - Left side PDF-style preview */
@@ -1634,6 +1725,7 @@
     .figures-content {
       flex: 1;
       overflow-y: auto;
+      overscroll-behavior: contain;
       padding: 3px;
       display: flex;
       flex-direction: column;
@@ -1867,7 +1959,7 @@
       </div>
       <div class="settings-row">
         <label>יישור טקסט:</label>
-        <div class="settings-toggle">
+        <div class="settings-toggle align-grid">
           <button id="alignRight">ימין</button>
           <button id="alignCenterRight" class="active">ימין-מרכז</button>
           <button id="alignCenter">מרכז</button>
@@ -1881,11 +1973,46 @@
       <h3>הדגשות</h3>
       <div class="settings-row">
         <label>צבע נקרא:</label>
-        <input type="color" id="settingsHighlightRead" value="#64c864">
+        <div class="color-with-opacity">
+          <input type="color" id="settingsHighlightRead" value="#64c864">
+          <input type="range" id="highlightReadOpacity" min="0" max="100" value="25">
+          <span class="opacity-value" id="highlightReadOpacityValue">25%</span>
+        </div>
       </div>
       <div class="settings-row">
         <label>צבע נוכחי:</label>
-        <input type="color" id="settingsHighlightCurrent" value="#ffc800">
+        <div class="color-with-opacity">
+          <input type="color" id="settingsHighlightCurrent" value="#ffc800">
+          <input type="range" id="highlightCurrentOpacity" min="0" max="100" value="50">
+          <span class="opacity-value" id="highlightCurrentOpacityValue">50%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Half-Bold Mode (הדגשת חצי) -->
+    <div class="settings-section">
+      <h3>הדגשת חצי</h3>
+      <div class="settings-row">
+        <label>מצב הדגשה:</label>
+        <div class="settings-toggle">
+          <button id="halfBoldModeOn">פעיל</button>
+          <button id="halfBoldModeOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>צבע (אופציונלי):</label>
+        <div class="color-with-opacity">
+          <input type="color" id="settingsHalfBoldColor" value="#0a84ff">
+          <input type="range" id="halfBoldColorOpacity" min="0" max="100" value="0">
+          <span class="opacity-value" id="halfBoldColorOpacityValue">0%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>גודל אותיות:</label>
+        <div class="slider-with-value">
+          <input type="range" id="halfBoldFontSize" min="100" max="150" value="100">
+          <span class="slider-value" id="halfBoldFontSizeValue">100%</span>
+        </div>
       </div>
     </div>
 
@@ -2405,6 +2532,10 @@
     let vnRadius = parseInt(localStorage.getItem('reading-pacer-vnradius')) || 5;
     let vnSentenceBuffer = parseInt(localStorage.getItem('reading-pacer-vnsentencebuffer')) || 1;
     let vnBorder = localStorage.getItem('reading-pacer-vnborder') === 'true';
+
+    // Half-bold mode (הדגשת חצי)
+    let halfBoldMode = localStorage.getItem('reading-pacer-halfbold') === 'true';
+    let halfBoldColor = localStorage.getItem('reading-pacer-halfbold-color') || '';
 
     // Junk patterns to remove (for Open University / similar PDF watermarks)
     const cleanPatterns = [
@@ -2944,6 +3075,16 @@
       return 'vn-fade-6';
     }
 
+    // Format word text with half-bold (bold first N letters)
+    // For words 6+ chars, use 3 letters; otherwise use 2
+    function formatHalfBold(text) {
+      if (text.length <= 1) return text;
+      const letters = text.length >= 6 ? 3 : 2;
+      const prefix = text.slice(0, letters);
+      const suffix = text.slice(letters);
+      return `<span class="half-bold-prefix">${prefix}</span><span class="half-bold-suffix">${suffix}</span>`;
+    }
+
     function joinWithSmartSpacing(wordObjects, startIdx, isCurrentChunk = false) {
       return wordObjects.map((w, i) => {
         const globalIdx = startIdx + i;
@@ -2968,7 +3109,9 @@
         const vnClass = getVnFadeClass(globalIdx);
         // Add word-pop class for current chunk words (not in VN mode)
         const popClass = (isCurrentChunk && !vnMode) ? ' word-pop' : '';
-        const span = `<span class="word${headingClass}${popClass}${vnClass ? ' ' + vnClass : ''}" onclick="setPosition(${globalIdx})">${w.text}</span>`;
+        // Apply half-bold formatting only to current chunk
+        const wordContent = (halfBoldMode && isCurrentChunk) ? formatHalfBold(w.text) : w.text;
+        const span = `<span class="word${headingClass}${popClass}${vnClass ? ' ' + vnClass : ''}" onclick="setPosition(${globalIdx})">${wordContent}</span>`;
         const prevIsBreak = i > 0 && (wordObjects[i-1].isParagraph || wordObjects[i-1].isLine);
         return (i > 0 && !prevIsBreak) ? ' ' + span : span;
       }).join('');
@@ -3887,10 +4030,7 @@
         textDisplay.classList.remove('centered-block');
       }
 
-      // Highlights (using CSS custom properties)
-      document.documentElement.style.setProperty('--highlight-read', hexToRgba(settings.highlightRead, 0.25));
-      document.documentElement.style.setProperty('--highlight-current', hexToRgba(settings.highlightCurrent, 0.5));
-      document.documentElement.style.setProperty('--highlight-current-border', hexToRgba(settings.highlightCurrent, 0.8));
+      // Highlights are now handled by applyHighlightColors() with opacity sliders
 
       // Paragraph spacing (applied via CSS class)
       document.documentElement.style.setProperty('--paragraph-spacing', settings.paragraphSpacing + 'px');
@@ -3965,6 +4105,24 @@
         if (settings.highlightRead) document.getElementById('settingsHighlightRead').value = settings.highlightRead;
         if (settings.highlightCurrent) document.getElementById('settingsHighlightCurrent').value = settings.highlightCurrent;
 
+        // Animation settings
+        if (settings.popSize !== undefined) {
+          document.getElementById('settingsPopSize').value = settings.popSize;
+          document.getElementById('popSizeValue').textContent = settings.popSize + '%';
+          document.documentElement.style.setProperty('--pop-scale', 1 + settings.popSize / 100);
+        }
+        if (settings.animSpeed !== undefined) {
+          document.getElementById('settingsAnimSpeed').value = settings.animSpeed;
+          document.getElementById('animSpeedValue').textContent = (settings.animSpeed / 100).toFixed(2) + 's';
+          document.documentElement.style.setProperty('--anim-speed', (settings.animSpeed / 100) + 's');
+        }
+
+        // Volume
+        if (settings.volume !== undefined) {
+          document.getElementById('settingsVolume').value = settings.volume;
+          document.getElementById('volumeValue').textContent = settings.volume + '%';
+        }
+
         applyVisualSettings();
       } catch (e) {
         log('Failed to load visual settings: ' + e.message, 'e');
@@ -4025,8 +4183,40 @@
       });
     });
 
-    document.getElementById('settingsHighlightRead').addEventListener('input', applyVisualSettings);
-    document.getElementById('settingsHighlightCurrent').addEventListener('input', applyVisualSettings);
+    document.getElementById('settingsHighlightRead').addEventListener('input', applyHighlightColors);
+    document.getElementById('settingsHighlightCurrent').addEventListener('input', applyHighlightColors);
+
+    // Highlight opacity sliders
+    document.getElementById('highlightReadOpacity').addEventListener('input', function() {
+      document.getElementById('highlightReadOpacityValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-highlight-read-opacity', this.value);
+      applyHighlightColors();
+    });
+    document.getElementById('highlightCurrentOpacity').addEventListener('input', function() {
+      document.getElementById('highlightCurrentOpacityValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-highlight-current-opacity', this.value);
+      applyHighlightColors();
+    });
+
+    // Apply highlight colors with opacity
+    function applyHighlightColors() {
+      const readColor = document.getElementById('settingsHighlightRead').value;
+      const currentColor = document.getElementById('settingsHighlightCurrent').value;
+      const readOpacity = parseInt(document.getElementById('highlightReadOpacity').value);
+      const currentOpacity = parseInt(document.getElementById('highlightCurrentOpacity').value);
+
+      document.documentElement.style.setProperty('--highlight-read', hexToRgba(readColor, readOpacity / 100));
+      document.documentElement.style.setProperty('--highlight-current', hexToRgba(currentColor, currentOpacity / 100));
+      document.documentElement.style.setProperty('--highlight-current-border', hexToRgba(currentColor, Math.min(1, currentOpacity / 100 + 0.3)));
+
+      // Save opacity values
+      localStorage.setItem('reading-pacer-highlight-read-opacity', readOpacity);
+      localStorage.setItem('reading-pacer-highlight-current-opacity', currentOpacity);
+
+      // Save colors too
+      const settings = getVisualSettings();
+      saveVisualSettings(settings);
+    }
 
     // Metronome toggle
     document.getElementById('metronomeOn').addEventListener('click', function() {
@@ -4092,6 +4282,57 @@
       drawVnBorder(); // Will hide the SVG
     });
 
+    // Half-bold mode toggle (הדגשת חצי)
+    document.getElementById('halfBoldModeOn').addEventListener('click', function() {
+      document.getElementById('halfBoldModeOff').classList.remove('active');
+      this.classList.add('active');
+      halfBoldMode = true;
+      document.getElementById('textDisplay').classList.add('half-bold-mode');
+      document.documentElement.style.setProperty('--half-bold-color', halfBoldColor);
+      localStorage.setItem('reading-pacer-halfbold', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('halfBoldModeOff').addEventListener('click', function() {
+      document.getElementById('halfBoldModeOn').classList.remove('active');
+      this.classList.add('active');
+      halfBoldMode = false;
+      document.getElementById('textDisplay').classList.remove('half-bold-mode');
+      localStorage.setItem('reading-pacer-halfbold', 'false');
+      if (words.length > 0) renderText();
+    });
+
+    // Half-bold color picker
+    document.getElementById('settingsHalfBoldColor').addEventListener('input', applyHalfBoldColor);
+
+    // Half-bold color opacity slider
+    document.getElementById('halfBoldColorOpacity').addEventListener('input', function() {
+      document.getElementById('halfBoldColorOpacityValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-halfbold-opacity', this.value);
+      applyHalfBoldColor();
+    });
+
+    // Half-bold font size slider
+    document.getElementById('halfBoldFontSize').addEventListener('input', function() {
+      document.getElementById('halfBoldFontSizeValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-halfbold-fontsize', this.value);
+      document.documentElement.style.setProperty('--half-bold-font-size', this.value + '%');
+    });
+
+    function applyHalfBoldColor() {
+      const color = document.getElementById('settingsHalfBoldColor').value;
+      const opacityVal = parseInt(document.getElementById('halfBoldColorOpacity').value);
+      const opacity = opacityVal / 100;
+      localStorage.setItem('reading-pacer-halfbold-color', color);
+      localStorage.setItem('reading-pacer-halfbold-opacity', opacityVal);
+
+      if (opacity === 0) {
+        document.documentElement.style.setProperty('--half-bold-color', 'inherit');
+      } else {
+        document.documentElement.style.setProperty('--half-bold-color', hexToRgba(color, opacity));
+      }
+      if (halfBoldMode && words.length > 0) renderText();
+    }
+
     document.getElementById('settingsVolume').addEventListener('input', function() {
       document.getElementById('volumeValue').textContent = this.value + '%';
       applyVisualSettings();
@@ -4150,6 +4391,17 @@
     if (vnBorder) {
       document.getElementById('vnBorderOff').classList.remove('active');
       document.getElementById('vnBorderOn').classList.add('active');
+    }
+
+    // Restore half-bold mode settings (הדגשת חצי)
+    if (halfBoldMode) {
+      document.getElementById('halfBoldModeOff').classList.remove('active');
+      document.getElementById('halfBoldModeOn').classList.add('active');
+      document.getElementById('textDisplay').classList.add('half-bold-mode');
+    }
+    if (halfBoldColor) {
+      document.getElementById('settingsHalfBoldColor').value = halfBoldColor;
+      document.documentElement.style.setProperty('--half-bold-color', halfBoldColor);
     }
 
     // Update VN border on scroll
@@ -4599,6 +4851,36 @@
 
     // Load visual settings on startup
     loadVisualSettings();
+
+    // Restore opacity values from localStorage and apply colors
+    const savedReadOpacity = localStorage.getItem('reading-pacer-highlight-read-opacity');
+    const savedCurrentOpacity = localStorage.getItem('reading-pacer-highlight-current-opacity');
+    const savedHalfBoldOpacity = localStorage.getItem('reading-pacer-halfbold-opacity');
+
+    if (savedReadOpacity !== null) {
+      document.getElementById('highlightReadOpacity').value = savedReadOpacity;
+      document.getElementById('highlightReadOpacityValue').textContent = savedReadOpacity + '%';
+    }
+    if (savedCurrentOpacity !== null) {
+      document.getElementById('highlightCurrentOpacity').value = savedCurrentOpacity;
+      document.getElementById('highlightCurrentOpacityValue').textContent = savedCurrentOpacity + '%';
+    }
+    if (savedHalfBoldOpacity !== null) {
+      document.getElementById('halfBoldColorOpacity').value = savedHalfBoldOpacity;
+      document.getElementById('halfBoldColorOpacityValue').textContent = savedHalfBoldOpacity + '%';
+    }
+
+    // Restore half-bold font size
+    const savedHalfBoldFontSize = localStorage.getItem('reading-pacer-halfbold-fontsize');
+    if (savedHalfBoldFontSize !== null) {
+      document.getElementById('halfBoldFontSize').value = savedHalfBoldFontSize;
+      document.getElementById('halfBoldFontSizeValue').textContent = savedHalfBoldFontSize + '%';
+      document.documentElement.style.setProperty('--half-bold-font-size', savedHalfBoldFontSize + '%');
+    }
+
+    // Apply highlight colors with opacity
+    applyHighlightColors();
+    applyHalfBoldColor();
 
     // Sync JS variables from input values (respects browser cache)
     chunkSize = parseInt(document.getElementById('chunkSizeInput').value) || 1;
