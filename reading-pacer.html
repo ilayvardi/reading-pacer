@@ -477,14 +477,9 @@
     .highlight-current {
       background: var(--highlight-current);
       border-radius: 4px;
-      box-shadow: 0 0 0 2px var(--highlight-current-border);
     }
 
-    /* Half-bold mode (הדגשת חצי) - bold first letters instead of highlight for current chunk */
-    .half-bold-mode .highlight-current {
-      background: none;
-      box-shadow: none;
-    }
+    /* Half-bold mode (הדגשת חצי) - bold first letters of current chunk */
     .half-bold-prefix {
       font-weight: bold;
       color: var(--half-bold-color, inherit);
@@ -492,6 +487,151 @@
     }
     .half-bold-suffix {
       font-weight: normal;
+    }
+
+    /* Fake cursor at end of chunk */
+    .fake-cursor {
+      display: inline-block;
+      width: 3px;
+      height: 0.8em;
+      background: var(--fake-cursor-color, #e0e0e0);
+      margin-left: 25px;
+      vertical-align: middle;
+      border-radius: 1px;
+      position: relative;
+      top: -1px;
+    }
+    .fake-cursor.blink {
+      animation: cursor-blink 0.8s ease-in-out infinite;
+    }
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* RSVP Mode - fixed center reading */
+    .rsvp-overlay {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 60px;
+      background: var(--bg-primary);
+      z-index: 50;
+    }
+    .rsvp-overlay.active {
+      display: block;
+    }
+    body.rsvp-active #textDisplay {
+      visibility: hidden;
+    }
+    .rsvp-content {
+      display: block;
+      width: 70%;
+      margin-left: -2.5%;
+      margin-right: auto;
+      margin-top: 22.5%;
+      padding-left: 25%;
+      font-size: var(--rsvp-font-size, 2.5em);
+      text-align: right;
+      direction: rtl;
+      line-height: 1.4;
+    }
+    .rsvp-content.orp-mode {
+      position: relative;
+      padding-left: 0;
+      padding-right: 0;
+      width: 100%;
+      margin-left: 0;
+      text-align: left;
+      direction: ltr;
+      height: 1.5em;
+      pointer-events: none;
+    }
+    .orp-word {
+      position: absolute;
+      white-space: nowrap;
+    }
+    .orp-letter {
+      color: #e74c3c;
+    }
+    /* Spritz redicle - horizontal lines with vertical center line */
+    .rsvp-redicle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .redicle-line-top,
+    .redicle-line-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--text-muted);
+      opacity: 0.5;
+    }
+    .redicle-line-top {
+      top: var(--redicle-top, 100px);
+    }
+    .redicle-line-bottom {
+      top: var(--redicle-bottom, 150px);
+    }
+    .redicle-vertical-top,
+    .redicle-vertical-bottom {
+      position: absolute;
+      left: 50%;
+      width: 2px;
+      background: #e74c3c;
+      transform: translateX(-50%);
+    }
+    .redicle-vertical-top {
+      top: 0;
+      height: calc(var(--redicle-top, 100px) + 12px);
+    }
+    .redicle-vertical-bottom {
+      top: calc(var(--redicle-bottom, 150px) - 12px);
+      bottom: 0;
+    }
+    .rsvp-progress {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9em;
+      color: var(--text-muted);
+    }
+    .rsvp-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: var(--rsvp-grid-opacity, 0.15);
+      font-size: var(--rsvp-font-size, 2.5em);
+      background-image:
+        linear-gradient(to right, var(--text-muted) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--text-muted) 1px, transparent 1px);
+      background-size: 0.75em 1.4em;
+      background-position: center calc(50% + 10px);
+    }
+    .rsvp-grid.hidden {
+      display: none;
+    }
+    .rsvp-hint {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8em;
+      color: var(--text-muted);
+      opacity: 0.7;
     }
 
     /* Vertical Progress Bar */
@@ -1179,7 +1319,7 @@
       border: 2px solid var(--border);
       border-radius: 16px;
       padding: 16px 32px;
-      z-index: 10;
+      z-index: 60;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1386,7 +1526,7 @@
       transform: translateX(-50%);
       width: 70%;
       max-width: 750px;
-      z-index: 5;
+      z-index: 55;
     }
     .page-slider-container {
       width: 100%;
@@ -1545,8 +1685,11 @@
     }
     .settings-dropdown.open {
       transform: translateX(-50%) translateY(0);
-      opacity: 1;
+      opacity: 0.65;
       pointer-events: auto;
+    }
+    .settings-dropdown.open:hover {
+      opacity: 0.98;
     }
     .settings-section {
       margin-bottom: 0;
@@ -1685,7 +1828,7 @@
       bottom: 0;
       background: var(--bg-tertiary);
       border-right: 1px solid var(--border);
-      z-index: 5;
+      z-index: 55;
       display: flex;
       flex-direction: column;
       transform: translateX(-100%);
@@ -1699,6 +1842,9 @@
     body.figures-panel-open .container {
       margin-left: 27px;
       margin-right: -27px;
+    }
+    body.figures-panel-open .rsvp-content {
+      margin-left: 24.5px;
     }
     .figures-header {
       display: flex;
@@ -1898,6 +2044,20 @@
           </optgroup>
         </select>
       </div>
+      <div class="settings-row">
+        <label>בהירות:</label>
+        <div class="slider-with-value">
+          <input type="range" id="globalBrightness" min="50" max="150" value="100">
+          <span class="slider-value" id="globalBrightnessValue">100%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>ניגודיות:</label>
+        <div class="slider-with-value">
+          <input type="range" id="globalContrast" min="50" max="150" value="100">
+          <span class="slider-value" id="globalContrastValue">100%</span>
+        </div>
+      </div>
     </div>
 
     <!-- Font -->
@@ -2014,6 +2174,13 @@
           <span class="slider-value" id="halfBoldFontSizeValue">100%</span>
         </div>
       </div>
+      <div class="settings-row">
+        <label>טקסט שלא נקרא:</label>
+        <div class="settings-toggle">
+          <button id="halfBoldUnreadOn">פעיל</button>
+          <button id="halfBoldUnreadOff" class="active">כבוי</button>
+        </div>
+      </div>
     </div>
 
     <!-- VN Mode -->
@@ -2077,6 +2244,97 @@
       </div>
     </div>
 
+    <!-- Fake Cursor -->
+    <div class="settings-section">
+      <h3>סמן קריאה</h3>
+      <div class="settings-row">
+        <label>סמן:</label>
+        <div class="settings-toggle">
+          <button id="fakeCursorOn">פעיל</button>
+          <button id="fakeCursorOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>צבע:</label>
+        <input type="color" id="fakeCursorColor" value="#e0e0e0">
+      </div>
+      <div class="settings-row">
+        <label>מהבהב:</label>
+        <div class="settings-toggle">
+          <button id="fakeCursorBlinkOn">פעיל</button>
+          <button id="fakeCursorBlinkOff" class="active">כבוי</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSVP Mode -->
+    <div class="settings-section">
+      <h3>מצב RSVP</h3>
+      <div class="settings-row">
+        <label>מצב:</label>
+        <div class="settings-toggle">
+          <button id="rsvpModeOn">פעיל</button>
+          <button id="rsvpModeOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>גודל טקסט:</label>
+        <div class="slider-with-value">
+          <input type="range" id="rsvpFontSize" min="150" max="500" value="250">
+          <span class="slider-value" id="rsvpFontSizeValue">250%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>רשת:</label>
+        <div class="settings-toggle">
+          <button id="rsvpGridOn">פעיל</button>
+          <button id="rsvpGridOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>שקיפות רשת:</label>
+        <div class="slider-with-value">
+          <input type="range" id="rsvpGridOpacity" min="0" max="50" value="15">
+          <span class="slider-value" id="rsvpGridOpacityValue">15%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>גובה טקסט:</label>
+        <div class="slider-with-value">
+          <input type="range" id="rsvpTextHeight" min="5" max="50" value="22">
+          <span class="slider-value" id="rsvpTextHeightValue">22%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>מיקום אופקי:</label>
+        <div class="slider-with-value">
+          <input type="range" id="rsvpTextPosition" min="-20" max="20" value="0">
+          <span class="slider-value" id="rsvpTextPositionValue">0%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>מצב Spritz (ORP):</label>
+        <div class="settings-toggle">
+          <button id="rsvpOrpOn">פעיל</button>
+          <button id="rsvpOrpOff" class="active">כבוי</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RSVP Overlay -->
+  <div class="rsvp-overlay" id="rsvpOverlay">
+    <div class="rsvp-hint">Space להתקדם • Esc לצאת • גלגל עכבר לניווט</div>
+    <div class="rsvp-grid" id="rsvpGrid"></div>
+    <div class="rsvp-redicle hidden" id="rsvpRedicle">
+      <div class="redicle-line-top"></div>
+      <div class="redicle-line-bottom"></div>
+      <div class="redicle-vertical-top"></div>
+      <div class="redicle-vertical-bottom"></div>
+    </div>
+    <div class="rsvp-content" id="rsvpContent"></div>
+    <div class="rsvp-progress" id="rsvpProgress"></div>
   </div>
 
   <!-- Pages Panel - PDF-style thumbnails -->
@@ -2536,6 +2794,27 @@
     // Half-bold mode (הדגשת חצי)
     let halfBoldMode = localStorage.getItem('reading-pacer-halfbold') === 'true';
     let halfBoldColor = localStorage.getItem('reading-pacer-halfbold-color') || '';
+    let halfBoldUnread = localStorage.getItem('reading-pacer-halfbold-unread') === 'true';
+    let fakeCursorEnabled = localStorage.getItem('reading-pacer-fakecursor') === 'true';
+    let fakeCursorBlink = localStorage.getItem('reading-pacer-fakecursor-blink') === 'true';
+    let fakeCursorColor = localStorage.getItem('reading-pacer-fakecursor-color') || '#e0e0e0';
+
+    // RSVP mode (Rapid Serial Visual Presentation)
+    let rsvpMode = localStorage.getItem('reading-pacer-rsvp') === 'true';
+    let rsvpFontSize = parseInt(localStorage.getItem('reading-pacer-rsvp-fontsize')) || 250;
+    let rsvpGrid = localStorage.getItem('reading-pacer-rsvp-grid') === 'true';
+    let rsvpGridOpacity = parseInt(localStorage.getItem('reading-pacer-rsvp-grid-opacity')) || 15;
+    let rsvpTextHeight = parseInt(localStorage.getItem('reading-pacer-rsvp-text-height')) || 22;
+    let rsvpTextPosition = parseInt(localStorage.getItem('reading-pacer-rsvp-text-position')) || 0;
+    let rsvpOrpMode = localStorage.getItem('reading-pacer-rsvp-orp') === 'true';
+
+    // Global brightness and contrast
+    let globalBrightness = parseInt(localStorage.getItem('reading-pacer-brightness')) || 100;
+    let globalContrast = parseInt(localStorage.getItem('reading-pacer-contrast')) || 100;
+
+    function applyGlobalFilters() {
+      document.body.style.filter = `brightness(${globalBrightness / 100}) contrast(${globalContrast / 100})`;
+    }
 
     // Junk patterns to remove (for Open University / similar PDF watermarks)
     const cleanPatterns = [
@@ -2933,11 +3212,16 @@
       sentences = [];
       let sentenceStart = 0;
 
+      // Check if a period is a decimal point (between two digits like 1.5)
+      function isDecimalPoint(text) {
+        return /\d\.\d/.test(text);
+      }
+
       for (let i = 0; i < words.length; i++) {
         const w = words[i];
 
-        // Check if token contains a period
-        if (w.text && w.text.includes('.')) {
+        // Check if token contains a period (but not a decimal point)
+        if (w.text && w.text.includes('.') && !isDecimalPoint(w.text)) {
           sentences.push({ startIdx: sentenceStart, endIdx: i + 1 });
           sentenceStart = i + 1;
         }
@@ -3085,7 +3369,78 @@
       return `<span class="half-bold-prefix">${prefix}</span><span class="half-bold-suffix">${suffix}</span>`;
     }
 
-    function joinWithSmartSpacing(wordObjects, startIdx, isCurrentChunk = false) {
+    // ORP (Optimal Recognition Point) calculation for Spritz-style reading
+    function getOrpIndex(word) {
+      // Strip punctuation for length calculation
+      const cleanWord = word.replace(/[^\p{L}\p{N}]/gu, '');
+      const len = cleanWord.length;
+      if (len <= 1) return 0;
+      if (len <= 3) return 0;       // 1-3 letters: 1st letter
+      if (len <= 5) return 1;       // 4-5 letters: 2nd letter
+      if (len <= 9) return 2;       // 6-9 letters: 3rd letter
+      return 3;                     // 10+ letters: 4th letter
+    }
+
+    function formatOrpWord(word) {
+      // Strip leading/trailing punctuation, keep track of them
+      const leadMatch = word.match(/^([^\p{L}\p{N}]*)/u);
+      const trailMatch = word.match(/([^\p{L}\p{N}]*)$/u);
+      const leadPunct = leadMatch ? leadMatch[1] : '';
+      const trailPunct = trailMatch ? trailMatch[1] : '';
+      const cleanWord = word.slice(leadPunct.length, word.length - (trailPunct.length || 0) || undefined);
+
+      if (cleanWord.length === 0) return `<span class="orp-word">${word}</span>`;
+
+      const orpIdx = getOrpIndex(cleanWord);
+      const before = leadPunct + cleanWord.slice(0, orpIdx);
+      const orp = cleanWord[orpIdx];
+      const after = cleanWord.slice(orpIdx + 1) + trailPunct;
+
+      return `<span class="orp-word">${before}<span class="orp-letter">${orp}</span>${after}</span>`;
+    }
+
+    function positionOrpWord(container) {
+      const wordEl = container.querySelector('.orp-word');
+      const highlight = container.querySelector('.orp-letter');
+      if (!wordEl || !highlight) return;
+
+      // Calculate offset to center the highlight letter
+      const containerCenter = container.clientWidth / 2;
+      const highlightCenter = highlight.offsetLeft + (highlight.offsetWidth / 2);
+      const offset = containerCenter - highlightCenter;
+
+      wordEl.style.left = offset + 'px';
+      wordEl.style.top = '0';
+
+      // Position redicle lines based on actual word position
+      const redicle = document.getElementById('rsvpRedicle');
+      const overlay = document.getElementById('rsvpOverlay');
+      if (redicle && overlay) {
+        const wordRect = wordEl.getBoundingClientRect();
+        const overlayRect = overlay.getBoundingClientRect();
+        const wordTop = wordRect.top - overlayRect.top;
+        const wordBottom = wordRect.bottom - overlayRect.top;
+
+        redicle.style.setProperty('--redicle-top', (wordTop - 5) + 'px');
+        redicle.style.setProperty('--redicle-bottom', (wordBottom + 5) + 'px');
+      }
+    }
+
+    // Re-position ORP on window resize
+    let orpResizeTimeout;
+    window.addEventListener('resize', function() {
+      if (rsvpMode && rsvpOrpMode) {
+        clearTimeout(orpResizeTimeout);
+        orpResizeTimeout = setTimeout(() => {
+          const content = document.getElementById('rsvpContent');
+          if (content && content.classList.contains('orp-mode')) {
+            positionOrpWord(content);
+          }
+        }, 50);
+      }
+    });
+
+    function joinWithSmartSpacing(wordObjects, startIdx, isCurrentChunk = false, isUnread = false) {
       return wordObjects.map((w, i) => {
         const globalIdx = startIdx + i;
         // Paragraph break (double newline)
@@ -3109,12 +3464,120 @@
         const vnClass = getVnFadeClass(globalIdx);
         // Add word-pop class for current chunk words (not in VN mode)
         const popClass = (isCurrentChunk && !vnMode) ? ' word-pop' : '';
-        // Apply half-bold formatting only to current chunk
-        const wordContent = (halfBoldMode && isCurrentChunk) ? formatHalfBold(w.text) : w.text;
+        // Apply half-bold formatting to current chunk, and unread text if enabled
+        const applyHalfBold = halfBoldMode && (isCurrentChunk || (halfBoldUnread && isUnread));
+        const wordContent = applyHalfBold ? formatHalfBold(w.text) : w.text;
         const span = `<span class="word${headingClass}${popClass}${vnClass ? ' ' + vnClass : ''}" onclick="setPosition(${globalIdx})">${wordContent}</span>`;
         const prevIsBreak = i > 0 && (wordObjects[i-1].isParagraph || wordObjects[i-1].isLine);
         return (i > 0 && !prevIsBreak) ? ' ' + span : span;
       }).join('');
+    }
+
+    // RSVP mode rendering - show current chunk in center of screen
+    function renderRSVP() {
+      const overlay = document.getElementById('rsvpOverlay');
+      const content = document.getElementById('rsvpContent');
+      const progress = document.getElementById('rsvpProgress');
+      const grid = document.getElementById('rsvpGrid');
+
+      if (!rsvpMode || words.length === 0) {
+        overlay.classList.remove('active');
+        document.body.classList.remove('rsvp-active');
+        return;
+      }
+
+      overlay.classList.add('active');
+      document.body.classList.add('rsvp-active');
+
+      // Handle grid visibility
+      if (rsvpGrid) {
+        grid.classList.remove('hidden');
+      } else {
+        grid.classList.add('hidden');
+      }
+
+      // Determine current chunk boundaries (same logic as renderText)
+      let currentEnd;
+      if (sentenceMode && sentences.length > 0) {
+        const lastSentIdx = Math.min(currentSentence + chunkSize - 1, sentences.length - 1);
+        const lastSent = sentences[lastSentIdx];
+        currentEnd = lastSent ? lastSent.endIdx : words.length;
+      } else {
+        currentEnd = Math.min(currentIndex + chunkSize, words.length);
+      }
+
+      // Get current chunk words (only actual words, skip breaks)
+      const chunkWordsArr = words.slice(currentIndex, currentEnd)
+        .filter(w => w.isWord || (!w.isParagraph && !w.isLine));
+      const wordCount = chunkWordsArr.filter(w => w.isWord).length;
+      const chunkWords = chunkWordsArr
+        .map(w => {
+          if (halfBoldMode && w.isWord) {
+            return formatHalfBold(w.text);
+          }
+          return w.text;
+        })
+        .join(' ');
+
+      // Add fake cursor if enabled
+      const cursorClass = fakeCursorBlink ? 'fake-cursor blink' : 'fake-cursor';
+      const cursor = fakeCursorEnabled ? `<span class="${cursorClass}"></span>` : '';
+
+      // Apply font styles from main text display
+      const textDisplay = document.getElementById('textDisplay');
+      content.style.fontFamily = textDisplay.style.fontFamily || '';
+      content.style.letterSpacing = textDisplay.style.letterSpacing || '';
+      content.style.lineHeight = textDisplay.style.lineHeight || '';
+
+      // Dynamic padding based on word count and mode
+      content.style.marginTop = rsvpTextHeight + '%';
+
+      // ORP (Spritz) mode - single word with fixed focal point
+      const useOrpMode = rsvpOrpMode && wordCount === 1 && !sentenceMode;
+      const redicle = document.getElementById('rsvpRedicle');
+
+      if (useOrpMode) {
+        content.classList.add('orp-mode');
+        content.style.marginLeft = '0';
+        const singleWord = chunkWordsArr.find(w => w.isWord);
+        const orpFormatted = singleWord ? formatOrpWord(singleWord.text) : '';
+        content.innerHTML = orpFormatted; // No cursor in Spritz mode
+        // Position word so ORP letter is at fixed center
+        requestAnimationFrame(() => positionOrpWord(content));
+        // Show redicle, hide regular grid
+        redicle.classList.remove('hidden');
+        grid.classList.add('hidden');
+      } else {
+        content.classList.remove('orp-mode');
+        content.style.marginLeft = rsvpTextPosition + '%';
+        if (sentenceMode) {
+          content.style.paddingRight = '0';
+          content.style.paddingLeft = '0';
+          content.style.width = '90%';
+        } else {
+          content.style.width = '70%';
+          content.style.paddingLeft = '25%';
+          if (wordCount === 1) {
+            content.style.paddingRight = '12%';
+          } else if (wordCount === 2) {
+            content.style.paddingRight = '7.5%';
+          } else {
+            content.style.paddingRight = '0';
+          }
+        }
+        content.innerHTML = chunkWords + cursor;
+        // Hide redicle, show regular grid if enabled
+        redicle.classList.add('hidden');
+        if (rsvpGrid) {
+          grid.classList.remove('hidden');
+        }
+      }
+
+      // Update progress
+      const totalWords = words.filter(w => w.isWord).length;
+      const readWords = words.slice(0, currentIndex).filter(w => w.isWord).length;
+      const percent = totalWords > 0 ? Math.round((readWords / totalWords) * 100) : 0;
+      progress.textContent = `${readWords} / ${totalWords} (${percent}%)`;
     }
 
     // Draw VN border around current + upcoming sentences (the "reading zone")
@@ -3282,6 +3745,13 @@
 
     function renderText() {
       log(`renderText() idx=${currentIndex} words=${words.length} sentenceMode=${sentenceMode}`);
+
+      // RSVP mode - render in overlay instead
+      if (rsvpMode) {
+        renderRSVP();
+        return;
+      }
+
       const display = document.getElementById('textDisplay');
       let html = '';
 
@@ -3310,12 +3780,14 @@
       // Current chunk - continuous highlight
       if (currentIndex < words.length) {
         const currentContent = joinWithSmartSpacing(words.slice(currentIndex, currentEnd), currentIndex, true);
-        html += `<span class="highlight-current" id="currentChunk">${currentContent}</span> `;
+        const cursorClass = fakeCursorBlink ? 'fake-cursor blink' : 'fake-cursor';
+        const cursor = fakeCursorEnabled ? `<span class="${cursorClass}"></span>` : '';
+        html += `<span class="highlight-current" id="currentChunk">${currentContent}</span>${cursor} `;
       }
 
-      // Remaining words - no highlight
+      // Remaining words - no highlight (but may have half-bold if enabled)
       if (currentEnd < words.length) {
-        const remainingContent = joinWithSmartSpacing(words.slice(currentEnd), currentEnd);
+        const remainingContent = joinWithSmartSpacing(words.slice(currentEnd), currentEnd, false, true);
         html += remainingContent;
       }
 
@@ -3983,8 +4455,30 @@
         case 'KeyR':
           reset();
           break;
+        case 'Escape':
+          if (rsvpMode) {
+            e.preventDefault();
+            rsvpMode = false;
+            localStorage.setItem('reading-pacer-rsvp', 'false');
+            document.getElementById('rsvpOverlay').classList.remove('active');
+            document.body.classList.remove('rsvp-active');
+            document.getElementById('rsvpModeOn').classList.remove('active');
+            document.getElementById('rsvpModeOff').classList.add('active');
+            renderText();
+          }
+          break;
       }
     });
+
+    // RSVP overlay scroll navigation
+    document.getElementById('rsvpOverlay').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        nextChunk();
+      } else {
+        prevChunk();
+      }
+    }, { passive: false });
 
     log('All event listeners initialized', 'i');
 
@@ -4036,6 +4530,9 @@
       document.documentElement.style.setProperty('--paragraph-spacing', settings.paragraphSpacing + 'px');
 
       saveVisualSettings(settings);
+
+      // Re-render RSVP if active to apply font changes
+      if (rsvpMode && words.length > 0) renderRSVP();
     }
 
     function getVisualSettings() {
@@ -4318,6 +4815,159 @@
       document.documentElement.style.setProperty('--half-bold-font-size', this.value + '%');
     });
 
+    // Half-bold unread text toggle
+    document.getElementById('halfBoldUnreadOn').addEventListener('click', function() {
+      document.getElementById('halfBoldUnreadOff').classList.remove('active');
+      this.classList.add('active');
+      halfBoldUnread = true;
+      localStorage.setItem('reading-pacer-halfbold-unread', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('halfBoldUnreadOff').addEventListener('click', function() {
+      document.getElementById('halfBoldUnreadOn').classList.remove('active');
+      this.classList.add('active');
+      halfBoldUnread = false;
+      localStorage.setItem('reading-pacer-halfbold-unread', 'false');
+      if (words.length > 0) renderText();
+    });
+
+    // Fake cursor toggle
+    document.getElementById('fakeCursorOn').addEventListener('click', function() {
+      document.getElementById('fakeCursorOff').classList.remove('active');
+      this.classList.add('active');
+      fakeCursorEnabled = true;
+      localStorage.setItem('reading-pacer-fakecursor', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('fakeCursorOff').addEventListener('click', function() {
+      document.getElementById('fakeCursorOn').classList.remove('active');
+      this.classList.add('active');
+      fakeCursorEnabled = false;
+      localStorage.setItem('reading-pacer-fakecursor', 'false');
+      if (words.length > 0) renderText();
+    });
+
+    // Fake cursor color
+    document.getElementById('fakeCursorColor').addEventListener('input', function() {
+      fakeCursorColor = this.value;
+      localStorage.setItem('reading-pacer-fakecursor-color', this.value);
+      document.documentElement.style.setProperty('--fake-cursor-color', this.value);
+    });
+
+    // Fake cursor blink toggle
+    document.getElementById('fakeCursorBlinkOn').addEventListener('click', function() {
+      document.getElementById('fakeCursorBlinkOff').classList.remove('active');
+      this.classList.add('active');
+      fakeCursorBlink = true;
+      localStorage.setItem('reading-pacer-fakecursor-blink', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('fakeCursorBlinkOff').addEventListener('click', function() {
+      document.getElementById('fakeCursorBlinkOn').classList.remove('active');
+      this.classList.add('active');
+      fakeCursorBlink = false;
+      localStorage.setItem('reading-pacer-fakecursor-blink', 'false');
+      if (words.length > 0) renderText();
+    });
+
+    // RSVP mode toggle
+    document.getElementById('rsvpModeOn').addEventListener('click', function() {
+      document.getElementById('rsvpModeOff').classList.remove('active');
+      this.classList.add('active');
+      rsvpMode = true;
+      localStorage.setItem('reading-pacer-rsvp', 'true');
+      if (words.length > 0) renderText();
+    });
+    document.getElementById('rsvpModeOff').addEventListener('click', function() {
+      document.getElementById('rsvpModeOn').classList.remove('active');
+      this.classList.add('active');
+      rsvpMode = false;
+      localStorage.setItem('reading-pacer-rsvp', 'false');
+      document.getElementById('rsvpOverlay').classList.remove('active');
+      document.body.classList.remove('rsvp-active');
+      if (words.length > 0) renderText();
+    });
+
+    // RSVP font size slider
+    document.getElementById('rsvpFontSize').addEventListener('input', function() {
+      rsvpFontSize = parseInt(this.value);
+      document.getElementById('rsvpFontSizeValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-rsvp-fontsize', this.value);
+      document.documentElement.style.setProperty('--rsvp-font-size', (this.value / 100) + 'em');
+    });
+
+    // RSVP grid toggle
+    document.getElementById('rsvpGridOn').addEventListener('click', function() {
+      document.getElementById('rsvpGridOff').classList.remove('active');
+      this.classList.add('active');
+      rsvpGrid = true;
+      localStorage.setItem('reading-pacer-rsvp-grid', 'true');
+      document.getElementById('rsvpGrid').classList.remove('hidden');
+    });
+    document.getElementById('rsvpGridOff').addEventListener('click', function() {
+      document.getElementById('rsvpGridOn').classList.remove('active');
+      this.classList.add('active');
+      rsvpGrid = false;
+      localStorage.setItem('reading-pacer-rsvp-grid', 'false');
+      document.getElementById('rsvpGrid').classList.add('hidden');
+    });
+
+    // RSVP grid opacity slider
+    document.getElementById('rsvpGridOpacity').addEventListener('input', function() {
+      rsvpGridOpacity = parseInt(this.value);
+      document.getElementById('rsvpGridOpacityValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-rsvp-grid-opacity', this.value);
+      document.documentElement.style.setProperty('--rsvp-grid-opacity', this.value / 100);
+    });
+
+    // RSVP text height slider
+    document.getElementById('rsvpTextHeight').addEventListener('input', function() {
+      rsvpTextHeight = parseInt(this.value);
+      document.getElementById('rsvpTextHeightValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-rsvp-text-height', this.value);
+      if (rsvpMode && words.length > 0) renderRSVP();
+    });
+
+    // RSVP text horizontal position slider
+    document.getElementById('rsvpTextPosition').addEventListener('input', function() {
+      rsvpTextPosition = parseInt(this.value);
+      document.getElementById('rsvpTextPositionValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-rsvp-text-position', this.value);
+      if (rsvpMode && words.length > 0) renderRSVP();
+    });
+
+    // RSVP ORP (Spritz) mode toggle
+    document.getElementById('rsvpOrpOn').addEventListener('click', function() {
+      rsvpOrpMode = true;
+      localStorage.setItem('reading-pacer-rsvp-orp', 'true');
+      document.getElementById('rsvpOrpOn').classList.add('active');
+      document.getElementById('rsvpOrpOff').classList.remove('active');
+      if (rsvpMode && words.length > 0) renderRSVP();
+    });
+    document.getElementById('rsvpOrpOff').addEventListener('click', function() {
+      rsvpOrpMode = false;
+      localStorage.setItem('reading-pacer-rsvp-orp', 'false');
+      document.getElementById('rsvpOrpOff').classList.add('active');
+      document.getElementById('rsvpOrpOn').classList.remove('active');
+      if (rsvpMode && words.length > 0) renderRSVP();
+    });
+
+    // Global brightness slider
+    document.getElementById('globalBrightness').addEventListener('input', function() {
+      globalBrightness = parseInt(this.value);
+      document.getElementById('globalBrightnessValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-brightness', this.value);
+      applyGlobalFilters();
+    });
+
+    // Global contrast slider
+    document.getElementById('globalContrast').addEventListener('input', function() {
+      globalContrast = parseInt(this.value);
+      document.getElementById('globalContrastValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-contrast', this.value);
+      applyGlobalFilters();
+    });
+
     function applyHalfBoldColor() {
       const color = document.getElementById('settingsHalfBoldColor').value;
       const opacityVal = parseInt(document.getElementById('halfBoldColorOpacity').value);
@@ -4402,6 +5052,57 @@
     if (halfBoldColor) {
       document.getElementById('settingsHalfBoldColor').value = halfBoldColor;
       document.documentElement.style.setProperty('--half-bold-color', halfBoldColor);
+    }
+    if (halfBoldUnread) {
+      document.getElementById('halfBoldUnreadOff').classList.remove('active');
+      document.getElementById('halfBoldUnreadOn').classList.add('active');
+    }
+
+    // Restore fake cursor settings
+    if (fakeCursorEnabled) {
+      document.getElementById('fakeCursorOff').classList.remove('active');
+      document.getElementById('fakeCursorOn').classList.add('active');
+    }
+    if (fakeCursorColor) {
+      document.getElementById('fakeCursorColor').value = fakeCursorColor;
+      document.documentElement.style.setProperty('--fake-cursor-color', fakeCursorColor);
+    }
+    if (fakeCursorBlink) {
+      document.getElementById('fakeCursorBlinkOff').classList.remove('active');
+      document.getElementById('fakeCursorBlinkOn').classList.add('active');
+    }
+
+    // Restore brightness/contrast
+    document.getElementById('globalBrightness').value = globalBrightness;
+    document.getElementById('globalBrightnessValue').textContent = globalBrightness + '%';
+    document.getElementById('globalContrast').value = globalContrast;
+    document.getElementById('globalContrastValue').textContent = globalContrast + '%';
+    applyGlobalFilters();
+
+    // Restore RSVP settings
+    if (rsvpMode) {
+      document.getElementById('rsvpModeOff').classList.remove('active');
+      document.getElementById('rsvpModeOn').classList.add('active');
+    }
+    document.getElementById('rsvpFontSize').value = rsvpFontSize;
+    document.getElementById('rsvpFontSizeValue').textContent = rsvpFontSize + '%';
+    document.documentElement.style.setProperty('--rsvp-font-size', (rsvpFontSize / 100) + 'em');
+    if (rsvpGrid) {
+      document.getElementById('rsvpGridOff').classList.remove('active');
+      document.getElementById('rsvpGridOn').classList.add('active');
+    } else {
+      document.getElementById('rsvpGrid').classList.add('hidden');
+    }
+    document.getElementById('rsvpGridOpacity').value = rsvpGridOpacity;
+    document.getElementById('rsvpGridOpacityValue').textContent = rsvpGridOpacity + '%';
+    document.documentElement.style.setProperty('--rsvp-grid-opacity', rsvpGridOpacity / 100);
+    document.getElementById('rsvpTextHeight').value = rsvpTextHeight;
+    document.getElementById('rsvpTextHeightValue').textContent = rsvpTextHeight + '%';
+    document.getElementById('rsvpTextPosition').value = rsvpTextPosition;
+    document.getElementById('rsvpTextPositionValue').textContent = rsvpTextPosition + '%';
+    if (rsvpOrpMode) {
+      document.getElementById('rsvpOrpOn').classList.add('active');
+      document.getElementById('rsvpOrpOff').classList.remove('active');
     }
 
     // Update VN border on scroll
