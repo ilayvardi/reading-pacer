@@ -257,7 +257,7 @@
     }
 
     .word:hover {
-      background: rgba(255,255,255,0.1);
+      background: var(--btn-bg);
     }
 
     .highlight-read {
@@ -278,7 +278,7 @@
       top: 80px;
       bottom: 20%;
       width: 5px;
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--btn-bg);
       border-radius: 4px;
       opacity: 0;
       transition: opacity 0.3s ease, right 0.3s ease;
@@ -308,7 +308,7 @@
       font-size: 11px;
       font-weight: bold;
       color: var(--text);
-      background: #1e1e2e;
+      background: var(--bg-secondary);
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -644,7 +644,7 @@
       justify-content: center;
       gap: 16px;
       z-index: 1;
-      background: rgba(37, 37, 56, 0.9);
+      background: var(--bg-secondary);
       backdrop-filter: blur(8px);
       border: 2px dashed var(--border);
       border-radius: 16px;
@@ -1151,7 +1151,7 @@
     .page-slider-container {
       width: 100%;
       padding: 14px 24px;
-      background: rgba(37, 37, 56, 0.25);
+      background: var(--btn-bg);
       clip-path: polygon(0% 0%, 100% 0%, 95% 100%, 5% 100%);
     }
     .page-slider-container::before {
@@ -1161,7 +1161,7 @@
       left: -2px;
       right: -2px;
       bottom: -2px;
-      background: rgba(68, 68, 102, 0.25);
+      background: var(--btn-hover);
       clip-path: polygon(0% 0%, 100% 0%, 95% 100%, 5% 100%);
       z-index: -1;
     }
@@ -1492,7 +1492,7 @@
     }
     .figures-content.drag-over .figures-placeholder {
       border-color: var(--accent);
-      background: rgba(10, 132, 255, 0.1);
+      background: var(--btn-bg);
       color: var(--accent);
     }
     /* Lightbox for full-size figure view */
@@ -2284,7 +2284,9 @@
           pageWords.push({ text: '', isWord: false, isParagraph: false, isLine: true });
         }
 
-        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        // Fix detached punctuation: "word ." -> "word."
+        const cleanedLine = trimmedLine.replace(/\s+\./g, '.').replace(/\s+,/g, ',').replace(/\s+:/g, ':').replace(/\s+;/g, ';');
+        const tokens = cleanedLine.split(/\s+/).filter(w => w.length > 0);
         tokens.forEach(token => {
           pageWords.push({
             text: token,
@@ -2466,7 +2468,9 @@
         if (lineIdx > 0 && words.length > 0 && !words[words.length - 1].isParagraph) {
           words.push({ text: '', isWord: false, isParagraph: false, isLine: true });
         }
-        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        // Fix detached punctuation: "word ." -> "word."
+        const cleanedLine = trimmedLine.replace(/\s+\./g, '.').replace(/\s+,/g, ',').replace(/\s+:/g, ':').replace(/\s+;/g, ';');
+        const tokens = cleanedLine.split(/\s+/).filter(w => w.length > 0);
         tokens.forEach(token => {
           words.push({
             text: token,
@@ -2512,7 +2516,9 @@
         }
 
         // Add words from this line
-        const tokens = trimmedLine.split(/\s+/).filter(w => w.length > 0);
+        // Fix detached punctuation: "word ." -> "word."
+        const cleanedLine = trimmedLine.replace(/\s+\./g, '.').replace(/\s+,/g, ',').replace(/\s+:/g, ':').replace(/\s+;/g, ';');
+        const tokens = cleanedLine.split(/\s+/).filter(w => w.length > 0);
         tokens.forEach(token => {
           words.push({
             text: token,
@@ -2622,7 +2628,7 @@
       updateWordProgress();
     }
 
-    // VN Mode: N sentences visible, previous sentences fade per word once outside buffer
+    // VN Mode: batch-based with progressive fade on previous batch
     function getVnFadeClass(wordIdx) {
       if (!vnMode) return '';
 
@@ -2630,46 +2636,62 @@
       const wordSentence = sentences.findIndex(s => wordIdx >= s.startIdx && wordIdx < s.endIdx);
       const currentSentenceIdx = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
 
+      if (currentSentenceIdx < 0 || wordSentence < 0) return 'vn-fade-6';
+
+      // Calculate batch system (same as border)
+      const currentBatch = Math.floor(currentSentenceIdx / vnSentenceBuffer);
+      const wordBatch = Math.floor(wordSentence / vnSentenceBuffer);
+      
+      const batchStartSentence = currentBatch * vnSentenceBuffer;
+      const batchEndSentence = Math.min(sentences.length - 1, batchStartSentence + vnSentenceBuffer - 1);
+      
+      // How far into current batch we are (word distance from batch start)
+      const batchStartWordIdx = sentences[batchStartSentence].startIdx;
+      const wordsIntoBatch = currentIndex - batchStartWordIdx;
+
       // Current chunk boundaries
       const chunkEnd = currentIndex + chunkSize;
-      const peekEnd = chunkEnd + chunkSize; // 1 chunk ahead for peek
+      const peekEnd = chunkEnd + chunkSize;
 
       // CURRENT CHUNK: fully visible
       if (wordIdx >= currentIndex && wordIdx < chunkEnd) {
         return 'vn-fade-0';
       }
 
-      // SENTENCES WITHIN BUFFER: fully visible
-      if (wordSentence >= 0 && currentSentenceIdx >= 0) {
-        const sentenceDistance = currentSentenceIdx - wordSentence;
-        // Current sentence + (buffer-1) previous sentences stay visible
-        if (sentenceDistance >= 0 && sentenceDistance < vnSentenceBuffer && wordIdx < currentIndex) {
-          return 'vn-fade-0';
-        }
+      // CURRENT BATCH (already read): fully visible
+      if (wordBatch === currentBatch && wordIdx < currentIndex) {
+        return 'vn-fade-0';
       }
 
-      // PEEK CHUNK (1 chunk ahead): really faded but visible
-      if (wordIdx >= chunkEnd && wordIdx < peekEnd) {
+      // CURRENT BATCH (peek ahead): slightly faded
+      if (wordBatch === currentBatch && wordIdx >= chunkEnd && wordIdx < peekEnd) {
         return 'vn-fade-peek';
       }
 
-      // AHEAD (beyond peek): invisible
-      if (wordIdx >= peekEnd) {
+      // CURRENT BATCH (further ahead): invisible
+      if (wordBatch === currentBatch && wordIdx >= peekEnd) {
         return 'vn-fade-6';
       }
 
-      // PREVIOUS SENTENCES (outside buffer): start at 50%, fade 12.5% per word
-      if (wordSentence >= 0 && currentSentenceIdx >= 0 && wordSentence < currentSentenceIdx) {
-        const sentenceDistance = currentSentenceIdx - wordSentence;
-        if (sentenceDistance >= vnSentenceBuffer) {
-          // Find the oldest buffered sentence to measure distance from
-          const bufferEndSentence = currentSentenceIdx - vnSentenceBuffer;
-          const bufferEndIdx = sentences[bufferEndSentence] ? sentences[bufferEndSentence].endIdx : currentIndex;
-          const wordDistance = bufferEndIdx - wordIdx;
-          // Start at level 1 (50%), each word = +1 level (12.5% more faded)
-          const fadeLevel = Math.min(1 + Math.floor(wordDistance / 1), 6);
-          return 'vn-fade-' + fadeLevel;
+      // FUTURE BATCHES: invisible
+      if (wordBatch > currentBatch) {
+        return 'vn-fade-6';
+      }
+
+      // PREVIOUS BATCHES: only immediate previous batch fades, older ones stay invisible
+      if (wordBatch < currentBatch) {
+        const batchDistance = currentBatch - wordBatch;
+        
+        // Batches 2+ back: always fully invisible
+        if (batchDistance >= 2) {
+          return 'vn-fade-6';
         }
+        
+        // Immediate previous batch (1 back): start at 50%, fade per word
+        // fade-1=50%, fade-2=37.5%, fade-3=25%, fade-4=12.5%, fade-5=0%, fade-6=0%
+        const progressFade = Math.floor(wordsIntoBatch / 1); // 1 level per word
+        const fadeLevel = Math.min(1 + progressFade, 6);
+        return 'vn-fade-' + fadeLevel;
       }
 
       // Fallback
@@ -2729,11 +2751,7 @@
       const startSentence = batchNumber * vnSentenceBuffer;
       const endSentence = Math.min(sentences.length - 1, startSentence + vnSentenceBuffer - 1);
       
-      // Get word range for all these sentences
-      const startWordIdx = sentences[startSentence].startIdx;
-      const endWordIdx = sentences[endSentence].endIdx;
-      
-      // Find all word elements in this range
+      // Find all word elements that belong to sentences in our batch
       const allWords = document.querySelectorAll('.word');
       const rects = [];
       
@@ -2745,8 +2763,11 @@
         if (!match) return;
         const wordIdx = parseInt(match[1]);
         
-        // Check if word is in our range
-        if (wordIdx >= startWordIdx && wordIdx < endWordIdx) {
+        // Check which sentence this word belongs to
+        const wordSentenceIdx = sentences.findIndex(s => wordIdx >= s.startIdx && wordIdx < s.endIdx);
+        
+        // Only include if word's sentence is in our batch
+        if (wordSentenceIdx >= startSentence && wordSentenceIdx <= endSentence) {
           const rect = word.getBoundingClientRect();
           if (rect.width > 0 && rect.height > 0) {
             rects.push({
@@ -3161,15 +3182,8 @@
       } else {
         progressText = `${currentIndex} / ${words.length}`;
         percent = words.length > 0 ? (currentIndex / words.length) * 100 : 0;
-        // Snap visual to line boundaries to reduce jitter
-        let lineStart = 0;
-        for (let i = currentIndex; i >= 0; i--) {
-          if (i === 0 || words[i-1].isLine || words[i-1].isParagraph) {
-            lineStart = i;
-            break;
-          }
-        }
-        visualPercent = words.length > 0 ? (lineStart / words.length) * 100 : 0;
+        // Use word-based percent (line snapping was causing issues)
+        visualPercent = percent;
       }
       if (hasPages) {
         progressText += ` | עמ׳ ${currentPage + 1}/${pages.length}`;
