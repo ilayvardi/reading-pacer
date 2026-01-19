@@ -473,10 +473,18 @@
       background: var(--highlight-read);
       border-radius: 4px;
     }
+    .highlight-continuous .highlight-read {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
 
     .highlight-current {
       background: var(--highlight-current);
       border-radius: 4px;
+    }
+    .highlight-continuous .highlight-current {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
     }
 
     /* Half-bold mode (הדגשת חצי) - bold first letters of current chunk */
@@ -492,14 +500,12 @@
     /* Fake cursor at end of chunk */
     .fake-cursor {
       display: inline-block;
-      width: 3px;
-      height: 0.8em;
+      width: 2px;
+      height: 0.85em;
       background: var(--fake-cursor-color, #e0e0e0);
-      margin-left: 25px;
+      margin: 0;
       vertical-align: middle;
       border-radius: 1px;
-      position: relative;
-      top: -1px;
     }
     .fake-cursor.blink {
       animation: cursor-blink 0.8s ease-in-out infinite;
@@ -584,7 +590,7 @@
     .redicle-vertical-top,
     .redicle-vertical-bottom {
       position: absolute;
-      left: 50%;
+      left: var(--redicle-x, 50%);
       width: 2px;
       background: #e74c3c;
       transform: translateX(-50%);
@@ -622,6 +628,9 @@
       background-position: center calc(50% + 10px);
     }
     .rsvp-grid.hidden {
+      display: none;
+    }
+    .rsvp-redicle.hidden {
       display: none;
     }
     .rsvp-hint {
@@ -727,11 +736,11 @@
     }
     #vnBorderPath {
       fill: none;
-      stroke: var(--text-color, #e0e0e0);
-      stroke-width: 2;
+      stroke: var(--border-color, #e0e0e0);
+      stroke-width: var(--border-width, 2);
+      opacity: var(--border-opacity, 0.6);
       stroke-linejoin: round;
       stroke-linecap: round;
-      opacity: 0.6;
     }
 
     /* Current chunk fade-in animation */
@@ -1519,6 +1528,79 @@
       border-color: var(--accent);
     }
 
+    /* TTS Controls */
+    .tts-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    #ttsLoadBtn {
+      min-width: 50px !important;
+      width: auto !important;
+      padding: 0 8px !important;
+    }
+    .tts-full-toggle {
+      min-width: 36px !important;
+      width: auto !important;
+      padding: 0 6px !important;
+    }
+    .tts-full-toggle.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .tts-speed-wrapper {
+      position: relative;
+    }
+    .tts-speed-rec {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-bottom: 1px;
+      white-space: nowrap;
+    }
+    .tts-speed-btn {
+      min-width: 36px !important;
+      width: auto !important;
+      padding: 0 6px !important;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .tts-speed-menu {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: 4px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .tts-speed-menu.open {
+      display: block;
+    }
+    .tts-speed-option {
+      padding: 8px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+    .tts-speed-option:hover {
+      background: var(--btn-hover);
+    }
+    .tts-speed-option.selected {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
     .page-slider-wrapper {
       position: fixed;
       bottom: 48px;
@@ -2147,6 +2229,13 @@
           <span class="opacity-value" id="highlightCurrentOpacityValue">50%</span>
         </div>
       </div>
+      <div class="settings-row">
+        <label>הדגשה רציפה:</label>
+        <div class="settings-toggle">
+          <button id="highlightContinuousOn">פעיל</button>
+          <button id="highlightContinuousOff" class="active">כבוי</button>
+        </div>
+      </div>
     </div>
 
     <!-- Half-Bold Mode (הדגשת חצי) -->
@@ -2203,11 +2292,34 @@
         <input type="range" id="settingsVnSentenceBuffer" min="1" max="5" value="1">
         <span class="range-value" id="vnSentenceBufferValue">1</span>
       </div>
+    </div>
+
+    <!-- Sentence Border -->
+    <div class="settings-section">
+      <h3>מסגרת משפט</h3>
       <div class="settings-row">
-        <label>מסגרת VN:</label>
+        <label>מסגרת:</label>
         <div class="settings-toggle">
           <button id="vnBorderOn">פעיל</button>
           <button id="vnBorderOff" class="active">כבוי</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>צבע:</label>
+        <input type="color" id="borderColor" value="#e0e0e0">
+      </div>
+      <div class="settings-row">
+        <label>שקיפות:</label>
+        <div class="slider-with-value">
+          <input type="range" id="borderOpacity" min="10" max="100" value="100">
+          <span class="slider-value" id="borderOpacityValue">100%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>עובי:</label>
+        <div class="slider-with-value">
+          <input type="range" id="borderWidth" min="1" max="6" value="2">
+          <span class="slider-value" id="borderWidthValue">2px</span>
         </div>
       </div>
     </div>
@@ -2227,6 +2339,14 @@
         <input type="range" id="settingsVolume" min="0" max="100" value="50">
         <span class="range-value" id="volumeValue">50%</span>
       </div>
+      <div class="settings-row">
+        <label>הקראה (TTS):</label>
+        <div class="settings-toggle">
+          <button id="ttsOn">פעיל</button>
+          <button id="ttsOff" class="active">כבוי</button>
+        </div>
+      </div>
+
     </div>
 
     <!-- Animation -->
@@ -2478,33 +2598,25 @@
   <div id="pdfModal">
     <div class="pdf-modal-content">
       <h2>📄 קובץ PDF זוהה</h2>
-      <p>דפדפנים לא יכולים לקרוא PDF ישירות. צריך להמיר אותו לטקסט קודם.</p>
+      <p>דפדפנים לא יכולים לקרוא PDF ישירות. השתמש בסקריפט extract_pdf.py לחילוץ טקסט נקי.</p>
 
       <div class="pdf-steps">
         <ol>
-          <li><a href="https://www.xpdfreader.com/download.html" target="_blank">התקן את pdftotext</a> (אם עוד לא מותקן)</li>
-          <li>במנהל הקבצים: קליק ימני על התיקייה → "Copy Location/Path" או "העתק מיקום"</li>
-          <li>פתח Terminal / PowerShell / CMD</li>
+          <li>ודא ש-<code>extract_pdf.py</code> נמצא בתיקיית ה-PDF</li>
+          <li>פתח Terminal בתיקייה (קליק ימני → "Open Terminal Here")</li>
           <li>
             הרץ: <span class="pdf-note">💡 הדבקה בטרמינל: Ctrl+Shift+V</span>
             <div class="pdf-command-row">
-              <div class="pdf-command" id="cdCommand">cd "המיקום שהעתקת"</div>
+              <div class="pdf-command" id="cdCommand">python3 extract_pdf.py "שם_הקובץ.pdf"</div>
               <button onclick="copyCdCommand()">📋</button>
-            </div>
-          </li>
-          <li>
-            הרץ:
-            <div class="pdf-command-row">
-              <div class="pdf-command">pdftotext "שם הקובץ כולל סיומת"</div>
-              <button onclick="copyPdfCommand()">📋</button>
             </div>
             <div class="pdf-example-row">
               <span>לדוגמה:</span>
-              <code id="pdfCommand">pdftotext "filename.pdf"</code>
+              <code id="pdfCommand">python3 extract_pdf.py "filename.pdf"</code>
             </div>
           </li>
           <li>
-            גרור את קובץ ה-txt שנוצר בתיקייה לכאן:
+            גרור את ה-PDF (לתמונות) ואת קובץ ה-txt שנוצר:
             <div class="pdf-dropzone" id="pdfDropzone">
               גרור לכאן
             </div>
@@ -2544,10 +2656,25 @@
 
     <div class="bar-buttons-right">
       <button class="bar-btn" id="resetBtn">איפוס</button>
-      <label class="bar-input-group">
-        <span>גלילה ב%:</span>
-        <input type="number" id="scrollToleranceInput" value="20" min="5" max="40" step="5">
-      </label>
+<div class="tts-controls" style="display: none;">
+  <button class="bar-btn" id="ttsLoadBtn">טען</button>
+  <button class="bar-btn tts-full-toggle" id="ttsFullToggle">הכל</button>
+  <div class="tts-speed-wrapper">
+    <span class="tts-speed-rec" id="ttsSpeedRec"></span>
+    <button class="bar-btn tts-speed-btn" id="ttsSpeedBtn">1x</button>
+    <div class="tts-speed-menu" id="ttsSpeedMenu">
+      <div class="tts-speed-option" data-speed="0.5">0.5x</div>
+      <div class="tts-speed-option" data-speed="0.75">0.75x</div>
+      <div class="tts-speed-option selected" data-speed="1">1x</div>
+      <div class="tts-speed-option" data-speed="1.25">1.25x</div>
+      <div class="tts-speed-option" data-speed="1.5">1.5x</div>
+      <div class="tts-speed-option" data-speed="2">2x</div>
+      <div class="tts-speed-option" data-speed="2.5">2.5x</div>
+      <div class="tts-speed-option" data-speed="3">3x</div>
+      <div class="tts-speed-option" data-speed="4">4x</div>
+    </div>
+  </div>
+</div>
     </div>
   </div>
 
@@ -2699,10 +2826,7 @@
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', reset);
 
-    // Scroll tolerance input
-    document.getElementById('scrollToleranceInput').addEventListener('change', function() {
-      scrollTolerance = parseInt(this.value) || 20;
-    });
+    // Scroll tolerance input removed
 
     // Bottom bar input sync
     document.getElementById('chunkSizeInput').addEventListener('input', function() {
@@ -2713,6 +2837,13 @@
         stopAutoAdvance();
         startAutoAdvance();
       }
+      // Invalidate TTS cache - settings changed
+      if (ttsCache.size > 0) {
+        clearTTSCache();
+        document.getElementById('ttsLoadBtn').textContent = 'טען מחדש';
+        log('[TTS] Cache cleared - chunk size changed', 'w');
+      }
+      updateRecommendedSpeed();
     });
     document.getElementById('wpmInput').addEventListener('input', function() {
       wpm = parseInt(this.value) || 200;
@@ -2721,6 +2852,13 @@
         stopAutoAdvance();
         startAutoAdvance();
       }
+      // Invalidate TTS cache - WPM affects speech rate
+      if (ttsCache.size > 0) {
+        clearTTSCache();
+        document.getElementById('ttsLoadBtn').textContent = 'טען מחדש';
+        log('[TTS] Cache cleared - WPM changed', 'w');
+      }
+      updateRecommendedSpeed();
     });
 
     // Wings - chunk navigation (inner wings)
@@ -2790,6 +2928,12 @@
     let vnRadius = parseInt(localStorage.getItem('reading-pacer-vnradius')) || 5;
     let vnSentenceBuffer = parseInt(localStorage.getItem('reading-pacer-vnsentencebuffer')) || 1;
     let vnBorder = localStorage.getItem('reading-pacer-vnborder') === 'true';
+    let borderColor = localStorage.getItem('reading-pacer-border-color') || '#e0e0e0';
+    let borderOpacity = parseInt(localStorage.getItem('reading-pacer-border-opacity')) || 60;
+    let borderWidth = parseInt(localStorage.getItem('reading-pacer-border-width')) || 2;
+
+    // Continuous highlight (no gap between read and current)
+    let highlightContinuous = localStorage.getItem('reading-pacer-highlight-continuous') === 'true';
 
     // Half-bold mode (הדגשת חצי)
     let halfBoldMode = localStorage.getItem('reading-pacer-halfbold') === 'true';
@@ -2807,20 +2951,26 @@
     let rsvpTextHeight = parseInt(localStorage.getItem('reading-pacer-rsvp-text-height')) || 22;
     let rsvpTextPosition = parseInt(localStorage.getItem('reading-pacer-rsvp-text-position')) || 0;
     let rsvpOrpMode = localStorage.getItem('reading-pacer-rsvp-orp') === 'true';
+    let redicleUpdateCount = 2; // Counter: update redicle for first N words after layout change
 
     // Global brightness and contrast
     let globalBrightness = parseInt(localStorage.getItem('reading-pacer-brightness')) || 100;
     let globalContrast = parseInt(localStorage.getItem('reading-pacer-contrast')) || 100;
 
     function applyGlobalFilters() {
-      document.body.style.filter = `brightness(${globalBrightness / 100}) contrast(${globalContrast / 100})`;
+      // Apply to content elements only, NOT body (filter on body breaks position:fixed)
+      const filterValue = `brightness(${globalBrightness / 100}) contrast(${globalContrast / 100})`;
+      document.body.style.filter = ''; // Clear any previous body filter
+      document.getElementById('textDisplay').style.filter = filterValue;
+      document.getElementById('rsvpOverlay').style.filter = filterValue;
     }
 
     // Junk patterns to remove (for Open University / similar PDF watermarks)
     const cleanPatterns = [
+      // === PHASE 1: Remove junk lines ===
       { regex: /^[_\-\u200E\u200F\u202A\u202B\u202C\u202D\u202E\s]+$/gm },           // Separator lines
       { regex: /^.*\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}.*$/gm },                  // Timestamps
-      { regex: /^.*\.indb.*$/gmi },                                                  // InDesign file refs
+      { regex: /^.*\.(indb|indd).*$/gmi },                                           // InDesign file refs (.indb AND .indd)
       { regex: /^.*do not distribute.*$/gmi },                                       // Distribution warning
       { regex: /^.*File #\d+\s*belongs to.*$/gmi },                                  // File # watermarks
       { regex: /^.*\d{6,}.*@.*\.com.*$/gmi },                                        // Email watermarks
@@ -2830,27 +2980,200 @@
       { regex: /^.*\bUntitled\b.*$/gm },                                             // Untitled markers
       { regex: /^.*0\s*\d{6,}.*$/gm },                                               // Barcode numbers
       { regex: /^[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s\t]+$/gm }, // RTL marks only
+      // === NEW: Watermark names ===
+      { regex: /^(Ilay|Vardinon)$/gm },                                              // Publisher watermark names
+      // === NEW: Repeated digits (OCR artifacts) ===
+      { regex: /^([0-9])\1{15,}$/gm },                                               // 15+ repeated same digit
+      // === NEW: Product/catalog codes ===
+      { regex: /^(מק"ט|מסת"ב|דאנאקוד)\s*.*$/gm },                                    // Hebrew product codes
+      { regex: /^ISBN\s+[\d\-]+$/gm },                                               // Standalone ISBN
+      // === NEW: Roman numerals alone on line ===
+      { regex: /^(i{1,3}|iv|vi{0,3}|ix|x{1,3}|xi{1,3}|xiv|xv|xvi{0,3}|xix|xx{1,3})$/gmi }, // Roman numerals i-xxx
+      // === NEW: Diacritics-only lines (Hebrew vowel points) ===
+      { regex: /^[\u0591-\u05C7]+$/gm },                                             // Only Hebrew vowel marks
+      // === NEW: Single Latin letters ===
+      { regex: /^[a-z]$/gmi },                                                        // Single letter lines
+
+      // === PHASE 2: Fix reversed parentheses from RTL extraction ===
+      // Pattern: ) X( → (X)
+      { regex: /\)\s*([A-Za-z0-9]+)\s*\(/g, replacement: '($1)' },                   // Fix reversed parens
       // Fix broken parentheses patterns from pdftotext: (‪,)word → (word), (‪ )word → (word)
       { regex: /\([\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s,]*\)[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069\s]*([a-zA-Z][a-zA-Z\s-]*)[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069]*/g, replacement: '($1)' },
-      // Strip all RTL/bidi marks from text entirely
+
+      // === PHASE 3: Strip RTL/bidi marks ===
       { regex: /[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069]/g, replacement: '' },
-      // Add space between English/brackets and Hebrew (when touching)
+
+      // === PHASE 4: Fix spacing between languages ===
       { regex: /\)(?=[\u0590-\u05FF])/g, replacement: ') ' },
       { regex: /([\u0590-\u05FF])\(/g, replacement: '$1 (' },
       { regex: /\.(?=[\u0590-\u05FFa-zA-Z])/g, replacement: '. ' },
       { regex: /([a-zA-Z])([\u0590-\u05FF])/g, replacement: '$1 $2' },
       { regex: /([\u0590-\u05FF])([a-zA-Z])/g, replacement: '$1 $2' },
-      // Fix Hebrew final letters (pdftotext often misses these)
+
+      // === PHASE 5: Fix Hebrew final letters (pdftotext often misses these) ===
       { regex: /מ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ם' },  // mem → final mem
       { regex: /נ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ן' },  // nun → final nun
       { regex: /צ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ץ' },  // tsadi → final tsadi
       { regex: /פ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ף' },  // pe → final pe
       { regex: /כ(?=\s|[^\u0590-\u05FF]|$)/g, replacement: 'ך' },  // kaf → final kaf
+
+      // === PHASE 6: Fix leading zeros before Hebrew ===
+      { regex: /^0([א-ת])/gm, replacement: '$1' },                                   // Remove leading 0 before Hebrew
+
+      // === PHASE 7: Collapse whitespace ===
       { regex: /\n{3,}/g, replacement: '\n\n' },                                     // Multiple blank lines
     ];
 
+    // Fix reversed English from RTL extraction
+    // Known reversed terms from biology/chemistry OCR extraction
+    const reversedTerms = {
+      // Elements & atoms
+      'negordyh': 'hydrogen', 'muileh': 'helium', 'nobrac': 'carbon', 'negyxo': 'oxygen',
+      'negortin': 'nitrogen', 'muidos': 'sodium', 'muissatop': 'potassium', 'muiclac': 'calcium',
+      'enirolhc': 'chlorine', 'nogra': 'argon', 'noen': 'neon', 'enidoi': 'iodine',
+      'enimora': 'bromine', 'eniroulf': 'fluorine', 'ruhplus': 'sulfur', 'surohpsohp': 'phosphorus',
+      'nori': 'iron', 'cniz': 'zinc', 'reppoc': 'copper', 'revlis': 'silver', 'dlog': 'gold',
+      // Particles & chemistry
+      'nortcele': 'electron', 'notorp': 'proton', 'nortuen': 'neutron', 'mota': 'atom',
+      'elucelom': 'molecule', 'noi': 'ion', 'dnob': 'bond', 'cinoi': 'ionic', 'tnelavoc': 'covalent',
+      'ralop': 'polar', 'ralopnon': 'nonpolar', 'llehs': 'shell', 'latibro': 'orbital',
+      // Biology terms
+      'llec': 'cell', 'nietorp': 'protein', 'emyzne': 'enzyme', 'esoculg': 'glucose',
+      'enarbmem': 'membrane', 'suelcun': 'nucleus', 'msalpotic': 'cytoplasm',
+      'airdnohcotim': 'mitochondria', 'tsalporolhc': 'chloroplast', 'emosibir': 'ribosome',
+      'emosomorhc': 'chromosome', 'eneg': 'gene', 'dipil': 'lipid',
+      // Structure terms
+      'erutcurts': 'structure', 'yramirp': 'primary', 'yradnoces': 'secondary',
+      'yraitret': 'tertiary', 'yranretauq': 'quaternary', 'ledom': 'model',
+      // Ordinals
+      'tsrif': 'first', 'dnoces': 'second', 'driht': 'third', 'htrof': 'fourth', 'htfif': 'fifth',
+      // Common words
+      'retaw': 'water', 'ygerne': 'energy', 'thgil': 'light', 'taeh': 'heat',
+      'dica': 'acid', 'esab': 'base', 'tlas': 'salt', 'ragus': 'sugar',
+      // Partial/short
+      'rtcele': 'electr', 'econd': 'econd', 'riht': 'thir'
+    };
+
+    function fixReversedEnglish(text) {
+      let result = text;
+
+      // 1. Fix reversed parentheses pattern: ) word ( → (word)
+      result = result.replace(/\)\s*([A-Za-z0-9]+)\s*\(/g, '($1)');
+
+      // 2. Fix known reversed terms (case-insensitive)
+      for (const [reversed, correct] of Object.entries(reversedTerms)) {
+        const regex = new RegExp(`\\b${reversed}\\b`, 'gi');
+        result = result.replace(regex, correct);
+      }
+
+      // 3. Heuristic: reverse any remaining word starting with unusual clusters
+      result = result.replace(/\b([a-zA-Z]{5,})\b/g, (match) => {
+        // Skip if already looks like English (common patterns)
+        if (/(?:ing|tion|ment|ness|able|ible|ous|ive|ary|ory|ly|er|ed|es|s)$/i.test(match)) {
+          return match;
+        }
+        // Check for very unusual starting clusters that almost never occur in English
+        if (/^(ll[^aeiouy]|dn|hs|hc[^aeiouy]|gn[^aeiouy]|tp|tn|tm|tk)/i.test(match)) {
+          const reversed = match.split('').reverse().join('');
+          // Only reverse if result looks more normal
+          if (/(?:ing|tion|ment|ness|able|ible|ous|ive|ary|ory|al|en|er|ed|es|s)$/i.test(reversed) ||
+              /^(the|pre|pro|con|dis|un|re|in|en|ex|de|be|sub|anti|auto|bio|co)/i.test(reversed)) {
+            return reversed;
+          }
+        }
+        return match;
+      });
+
+      return result;
+    }
+
+    // Join fragmented lines from PDF diagram/table extraction
+    function joinFragmentedLines(text) {
+      // First pass: detect "diagram regions" (many short lines) and remove blanks within them
+      let lines = text.split('\n');
+      const maxShortLine = 35;
+      const minDiagramRegion = 4;
+
+      // Find diagram regions and mark internal blanks for removal
+      let i = 0;
+      while (i < lines.length) {
+        let regionStart = i;
+        let shortCount = 0;
+        let j = i;
+
+        // Scan forward counting short/empty lines
+        while (j < lines.length) {
+          const line = lines[j].trim();
+          if (line.length === 0) { j++; continue; }
+          if (line.length <= maxShortLine && !/[.!?]$/.test(line)) {
+            shortCount++;
+            j++;
+          } else {
+            break;
+          }
+        }
+
+        // If diagram region found, mark internal blanks
+        if (shortCount >= minDiagramRegion) {
+          for (let k = regionStart; k < j; k++) {
+            if (lines[k].trim().length === 0) {
+              lines[k] = '\x00'; // Mark for removal
+            }
+          }
+        }
+        i = Math.max(i + 1, j);
+      }
+
+      // Remove marked blanks
+      lines = lines.filter(l => l !== '\x00');
+
+      // Second pass: join consecutive short lines
+      const result = [];
+      i = 0;
+      const sentenceEnd = /[.!?:،؛]$/;
+      const isHeading = /^(פרק|חטיבה|סעיף|איור|טבלה|\d+\.\d+)\s/;
+
+      while (i < lines.length) {
+        let currentLine = lines[i].trim();
+
+        if (!currentLine) {
+          result.push('');
+          i++;
+          continue;
+        }
+
+        // Join consecutive short lines
+        while (
+          currentLine.length < maxShortLine &&
+          !sentenceEnd.test(currentLine) &&
+          !isHeading.test(currentLine) &&
+          i + 1 < lines.length &&
+          lines[i + 1].trim().length > 0 &&
+          lines[i + 1].trim().length < maxShortLine
+        ) {
+          i++;
+          const nextLine = lines[i].trim();
+
+          if (currentLine.endsWith('-') || currentLine.endsWith('־')) {
+            currentLine = currentLine.slice(0, -1) + nextLine;
+          } else if (/^[,.)،؛]/.test(nextLine)) {
+            currentLine = currentLine + nextLine;
+          } else {
+            currentLine = currentLine + ' ' + nextLine;
+          }
+        }
+
+        result.push(currentLine);
+        i++;
+      }
+
+      return result.join('\n');
+    }
+
     async function cleanTextAsync(text) {
       let result = text;
+
+      // Phase 1: Apply regex cleanup patterns
       const total = cleanPatterns.length;
       for (let i = 0; i < total; i++) {
         const p = cleanPatterns[i];
@@ -2862,6 +3185,14 @@
         // Yield to UI every few patterns
         if (i % 3 === 0) await delay(0);
       }
+
+      // Phase 2: Fix reversed English from RTL extraction
+      result = fixReversedEnglish(result);
+      await delay(0);
+
+      // Phase 3: Join fragmented lines from PDF diagrams/tables
+      result = joinFragmentedLines(result);
+
       return result.trim();
     }
 
@@ -2984,6 +3315,12 @@
       currentPage = pageIdx;
       initCurrentPage();
       updatePageNav();
+      // Invalidate TTS cache - page changed
+      if (ttsCache.size > 0) {
+        clearTTSCache();
+        document.getElementById('ttsLoadBtn').textContent = 'טען מחדש';
+        log('[TTS] Cache cleared - page changed', 'w');
+      }
       log(`Jumped to page ${pageIdx + 1}`);
     }
 
@@ -3210,6 +3547,7 @@
     // Parse sentence boundaries - simple dot to dot
     function parseSentences() {
       sentences = [];
+      wordToSentenceMap = null; // Invalidate cache
       let sentenceStart = 0;
 
       // Check if a period is a decimal point (between two digits like 1.5)
@@ -3290,14 +3628,41 @@
     }
 
     // VN Mode: batch-based with progressive fade on previous batch
+    // Cache for sentence lookup - rebuilt when sentences change
+    let wordToSentenceMap = null;
+    let cachedCurrentSentenceIdx = -1;
+    let cachedCurrentIndex = -1;
+
+    function buildWordToSentenceMap() {
+      if (sentences.length === 0) return;
+      wordToSentenceMap = new Array(words.length);
+      for (let si = 0; si < sentences.length; si++) {
+        const s = sentences[si];
+        for (let wi = s.startIdx; wi < s.endIdx && wi < words.length; wi++) {
+          wordToSentenceMap[wi] = si;
+        }
+      }
+    }
+
     function getVnFadeClass(wordIdx) {
       if (!vnMode) return '';
 
-      // Find sentence boundaries
-      const wordSentence = sentences.findIndex(s => wordIdx >= s.startIdx && wordIdx < s.endIdx);
-      const currentSentenceIdx = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
+      // Build map if needed
+      if (!wordToSentenceMap || wordToSentenceMap.length !== words.length) {
+        buildWordToSentenceMap();
+      }
 
-      if (currentSentenceIdx < 0 || wordSentence < 0) return 'vn-fade-6';
+      // Use cached sentence lookups
+      const wordSentence = wordToSentenceMap ? wordToSentenceMap[wordIdx] : -1;
+
+      // Cache currentSentenceIdx - only recalculate when currentIndex changes
+      if (cachedCurrentIndex !== currentIndex) {
+        cachedCurrentIndex = currentIndex;
+        cachedCurrentSentenceIdx = wordToSentenceMap ? wordToSentenceMap[currentIndex] : -1;
+      }
+      const currentSentenceIdx = cachedCurrentSentenceIdx;
+
+      if (currentSentenceIdx < 0 || wordSentence === undefined) return 'vn-fade-6';
 
       // Calculate batch system (same as border)
       const currentBatch = Math.floor(currentSentenceIdx / vnSentenceBuffer);
@@ -3371,59 +3736,89 @@
 
     // ORP (Optimal Recognition Point) calculation for Spritz-style reading
     function getOrpIndex(word) {
-      // Strip punctuation for length calculation
-      const cleanWord = word.replace(/[^\p{L}\p{N}]/gu, '');
-      const len = cleanWord.length;
+      // Use actual word length (symbols, numbers, letters all count)
+      const len = word.length;
       if (len <= 1) return 0;
-      if (len <= 3) return 0;       // 1-3 letters: 1st letter
-      if (len <= 5) return 1;       // 4-5 letters: 2nd letter
-      if (len <= 9) return 2;       // 6-9 letters: 3rd letter
-      return 3;                     // 10+ letters: 4th letter
+      if (len <= 3) return 0;       // 1-3 chars: 1st char
+      if (len <= 5) return 1;       // 4-5 chars: 2nd char
+      if (len <= 9) return 2;       // 6-9 chars: 3rd char
+      return 3;                     // 10+ chars: 4th char
     }
 
     function formatOrpWord(word) {
-      // Strip leading/trailing punctuation, keep track of them
-      const leadMatch = word.match(/^([^\p{L}\p{N}]*)/u);
-      const trailMatch = word.match(/([^\p{L}\p{N}]*)$/u);
-      const leadPunct = leadMatch ? leadMatch[1] : '';
-      const trailPunct = trailMatch ? trailMatch[1] : '';
-      const cleanWord = word.slice(leadPunct.length, word.length - (trailPunct.length || 0) || undefined);
+      // For ORP, treat the whole word as content (don't strip "punctuation")
+      // Single symbols like ❹ should be displayed with ORP highlighting
+      const cleanWord = word.trim();
 
-      if (cleanWord.length === 0) return `<span class="orp-word">${word}</span>`;
+      // Check if word is NOT Hebrew - needs dir="ltr" in RTL document
+      const isHebrew = /^[\u0590-\u05FF]/.test(cleanWord);
+      const dirAttr = !isHebrew ? ' dir="ltr"' : '';
+
+      if (cleanWord.length === 0) return `<span class="orp-word"${dirAttr}>${word}</span>`;
 
       const orpIdx = getOrpIndex(cleanWord);
-      const before = leadPunct + cleanWord.slice(0, orpIdx);
+      const before = cleanWord.slice(0, orpIdx);
       const orp = cleanWord[orpIdx];
-      const after = cleanWord.slice(orpIdx + 1) + trailPunct;
+      const after = cleanWord.slice(orpIdx + 1);
 
-      return `<span class="orp-word">${before}<span class="orp-letter">${orp}</span>${after}</span>`;
+      return `<span class="orp-word"${dirAttr}>${before}<span class="orp-letter">${orp}</span>${after}</span>`;
     }
 
-    function positionOrpWord(container) {
-      const wordEl = container.querySelector('.orp-word');
-      const highlight = container.querySelector('.orp-letter');
-      if (!wordEl || !highlight) return;
-
-      // Calculate offset to center the highlight letter
-      const containerCenter = container.clientWidth / 2;
-      const highlightCenter = highlight.offsetLeft + (highlight.offsetWidth / 2);
-      const offset = containerCenter - highlightCenter;
-
-      wordEl.style.left = offset + 'px';
-      wordEl.style.top = '0';
-
-      // Position redicle lines based on actual word position
+    // Update redicle position - call on layout changes (resize, font, sliders), NOT on word changes
+    function updateRediclePosition() {
+      const container = document.getElementById('rsvpContent');
       const redicle = document.getElementById('rsvpRedicle');
       const overlay = document.getElementById('rsvpOverlay');
-      if (redicle && overlay) {
+      const wordEl = container?.querySelector('.orp-word');
+
+      if (!redicle || !overlay || !container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const overlayRect = overlay.getBoundingClientRect();
+
+      // X position: container center + horizontal position adjustment
+      const horizontalShift = (rsvpTextPosition / 100) * containerRect.width;
+      const redicleX = containerRect.left - overlayRect.left + containerRect.width / 2 + horizontalShift;
+      redicle.style.setProperty('--redicle-x', redicleX + 'px');
+
+      // Vertical position: based on word if present
+      if (wordEl) {
         const wordRect = wordEl.getBoundingClientRect();
-        const overlayRect = overlay.getBoundingClientRect();
         const wordTop = wordRect.top - overlayRect.top;
         const wordBottom = wordRect.bottom - overlayRect.top;
-
         redicle.style.setProperty('--redicle-top', (wordTop - 5) + 'px');
         redicle.style.setProperty('--redicle-bottom', (wordBottom + 5) + 'px');
       }
+    }
+
+    // Position word so ORP letter is at container center - call on every word change
+    function positionOrpWord(container) {
+      const wordEl = container.querySelector('.orp-word');
+      const highlight = container.querySelector('.orp-letter');
+      if (!wordEl) return;
+
+      // Reset position first to get accurate measurements
+      wordEl.style.left = '0';
+      wordEl.style.top = '0';
+
+      // Use getBoundingClientRect for reliable cross-script positioning
+      const containerRect = container.getBoundingClientRect();
+
+      // If we have a highlight letter, center on it; otherwise center the whole word
+      const targetEl = highlight || wordEl;
+      const targetRect = targetEl.getBoundingClientRect();
+
+      // Calculate where target currently is vs where it should be (container center)
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      const targetCenter = targetRect.left + targetRect.width / 2;
+      let offset = containerCenter - targetCenter;
+
+      // Apply horizontal position adjustment
+      const horizontalShift = (rsvpTextPosition / 100) * containerRect.width;
+      offset += horizontalShift;
+
+      wordEl.style.left = offset + 'px';
+      wordEl.style.top = '0';
     }
 
     // Re-position ORP on window resize
@@ -3435,6 +3830,7 @@
           const content = document.getElementById('rsvpContent');
           if (content && content.classList.contains('orp-mode')) {
             positionOrpWord(content);
+            updateRediclePosition();
           }
         }, 50);
       }
@@ -3539,11 +3935,21 @@
       if (useOrpMode) {
         content.classList.add('orp-mode');
         content.style.marginLeft = '0';
-        const singleWord = chunkWordsArr.find(w => w.isWord);
+        const singleWord = chunkWordsArr.find(w => w.isWord || (w.text && /\d/.test(w.text)));
         const orpFormatted = singleWord ? formatOrpWord(singleWord.text) : '';
         content.innerHTML = orpFormatted; // No cursor in Spritz mode
         // Position word so ORP letter is at fixed center
-        requestAnimationFrame(() => positionOrpWord(content));
+        // Double RAF ensures layout is complete before measuring
+        requestAnimationFrame(() => {
+          positionOrpWord(content);
+          requestAnimationFrame(() => {
+            // Update redicle position for first few words after layout change
+            if (redicleUpdateCount > 0) {
+              updateRediclePosition();
+              redicleUpdateCount--;
+            }
+          });
+        });
         // Show redicle, hide regular grid
         redicle.classList.remove('hidden');
         grid.classList.add('hidden');
@@ -3585,14 +3991,17 @@
       const svg = document.getElementById('vnBorderSvg');
       const path = document.getElementById('vnBorderPath');
       
-      if (!vnBorder || !vnMode || sentences.length === 0) {
+      if (!vnBorder || sentences.length === 0) {
         svg.style.display = 'none';
         return;
       }
-      
-      // Find current sentence
-      const currentSentenceIdx = sentences.findIndex(s => currentIndex >= s.startIdx && currentIndex < s.endIdx);
-      if (currentSentenceIdx < 0) {
+
+      // Find current sentence (use cached map)
+      if (!wordToSentenceMap || wordToSentenceMap.length !== words.length) {
+        buildWordToSentenceMap();
+      }
+      const currentSentenceIdx = wordToSentenceMap ? wordToSentenceMap[currentIndex] : -1;
+      if (currentSentenceIdx === undefined || currentSentenceIdx < 0) {
         svg.style.display = 'none';
         return;
       }
@@ -3614,10 +4023,10 @@
         const match = onclick.match(/setPosition\((\d+)\)/);
         if (!match) return;
         const wordIdx = parseInt(match[1]);
-        
-        // Check which sentence this word belongs to
-        const wordSentenceIdx = sentences.findIndex(s => wordIdx >= s.startIdx && wordIdx < s.endIdx);
-        
+
+        // Check which sentence this word belongs to (use cached map)
+        const wordSentenceIdx = wordToSentenceMap ? wordToSentenceMap[wordIdx] : -1;
+
         // Only include if word's sentence is in our batch
         if (wordSentenceIdx >= startSentence && wordSentenceIdx <= endSentence) {
           const rect = word.getBoundingClientRect();
@@ -3640,7 +4049,7 @@
       // Group rects by line (similar Y position, within 5px tolerance)
       const lines = [];
       const tolerance = 5;
-      
+
       rects.forEach(rect => {
         const midY = (rect.top + rect.bottom) / 2;
         let foundLine = lines.find(line => Math.abs(line.midY - midY) < tolerance);
@@ -3648,22 +4057,34 @@
           foundLine.rects.push(rect);
           foundLine.left = Math.min(foundLine.left, rect.left);
           foundLine.right = Math.max(foundLine.right, rect.right);
-          foundLine.top = Math.min(foundLine.top, rect.top);
-          foundLine.bottom = Math.max(foundLine.bottom, rect.bottom);
+          // Keep tracking for midY calculation, but we'll normalize heights later
+          foundLine.rawTop = Math.min(foundLine.rawTop, rect.top);
+          foundLine.rawBottom = Math.max(foundLine.rawBottom, rect.bottom);
         } else {
           lines.push({
             midY: midY,
             left: rect.left,
             right: rect.right,
-            top: rect.top,
-            bottom: rect.bottom,
+            rawTop: rect.top,
+            rawBottom: rect.bottom,
             rects: [rect]
           });
         }
       });
-      
+
       // Sort lines by Y position (top to bottom)
-      lines.sort((a, b) => a.top - b.top);
+      lines.sort((a, b) => a.rawTop - b.rawTop);
+
+      // Normalize line heights for smooth borders
+      // Use consistent height based on average, applied from each line's midpoint
+      if (lines.length > 0) {
+        const avgHeight = lines.reduce((sum, l) => sum + (l.rawBottom - l.rawTop), 0) / lines.length;
+        const halfHeight = avgHeight / 2;
+        lines.forEach(line => {
+          line.top = line.midY - halfHeight;
+          line.bottom = line.midY + halfHeight;
+        });
+      }
       
       if (lines.length === 0) {
         svg.style.display = 'none';
@@ -3755,6 +4176,13 @@
       const display = document.getElementById('textDisplay');
       let html = '';
 
+      // Full TTS mode: plain text, no highlighting
+      if (ttsFullMode && ttsCache.has('__FULL__')) {
+        html = joinWithSmartSpacing(words, 0);
+        display.innerHTML = html;
+        return;
+      }
+
       // Determine current chunk boundaries
       let currentEnd;
       if (sentenceMode && sentences.length > 0) {
@@ -3773,7 +4201,8 @@
         if (vnMode) {
           html += readContent + ' ';
         } else {
-          html += `<span class="highlight-read">${readContent}</span> `;
+          const trailingSpace = highlightContinuous ? ' </span>' : '</span> ';
+          html += `<span class="highlight-read">${readContent}${trailingSpace}`;
         }
       }
 
@@ -3983,6 +4412,13 @@
 
     function scheduleNextChunk() {
       if (!autoAdvance) return;
+      
+      // Full TTS mode: just play audio, no chunking
+      if (ttsFullMode && ttsCache.has('__FULL__')) {
+        speakChunk();  // Triggers full audio playback
+        return;  // Don't schedule chunk advances
+      }
+      
       const interval = getAutoAdvanceInterval();
       autoInterval = setTimeout(() => {
         nextChunk();
@@ -3999,6 +4435,7 @@
         clearTimeout(autoInterval);
         autoInterval = null;
       }
+      stopTTS();
     }
 
     function updateSettings() {
@@ -4197,7 +4634,7 @@
     function showPdfModal(filename) {
       log('showPdfModal() called with: ' + filename, 'i');
       currentPdfFilename = filename;
-      document.getElementById('pdfCommand').textContent = `pdftotext "${filename}"`;
+      document.getElementById('pdfCommand').textContent = `python3 extract_pdf.py "${filename}"`;
       const modal = document.getElementById('pdfModal');
       log('modal element: ' + (modal ? 'found' : 'NOT FOUND'), modal ? 'i' : 'e');
       modal.classList.add('active');
@@ -4715,6 +5152,22 @@
       saveVisualSettings(settings);
     }
 
+    // Continuous highlight toggle
+    document.getElementById('highlightContinuousOn').addEventListener('click', function() {
+      document.getElementById('highlightContinuousOff').classList.remove('active');
+      this.classList.add('active');
+      highlightContinuous = true;
+      localStorage.setItem('reading-pacer-highlight-continuous', 'true');
+      document.getElementById('textDisplay').classList.add('highlight-continuous');
+    });
+    document.getElementById('highlightContinuousOff').addEventListener('click', function() {
+      document.getElementById('highlightContinuousOn').classList.remove('active');
+      this.classList.add('active');
+      highlightContinuous = false;
+      localStorage.setItem('reading-pacer-highlight-continuous', 'false');
+      document.getElementById('textDisplay').classList.remove('highlight-continuous');
+    });
+
     // Metronome toggle
     document.getElementById('metronomeOn').addEventListener('click', function() {
       document.getElementById('metronomeOff').classList.remove('active');
@@ -4728,6 +5181,98 @@
       metronomeEnabled = false;
       localStorage.setItem('reading-pacer-metronome', 'false');
     });
+
+    // TTS toggle
+    document.getElementById('ttsOn').addEventListener('click', function() {
+      document.getElementById('ttsOff').classList.remove('active');
+      this.classList.add('active');
+      ttsEnabled = true;
+      localStorage.setItem('reading-pacer-tts', 'true');
+      document.querySelector('.tts-controls').style.display = 'flex';
+    });
+    document.getElementById('ttsOff').addEventListener('click', function() {
+      document.getElementById('ttsOn').classList.remove('active');
+      this.classList.add('active');
+      ttsEnabled = false;
+      localStorage.setItem('reading-pacer-tts', 'false');
+      stopTTS();
+      clearTTSCache();
+      document.querySelector('.tts-controls').style.display = 'none';
+    });
+
+    // TTS Load button
+    document.getElementById('ttsLoadBtn').addEventListener('click', async function() {
+      if (words.length === 0) {
+        alert('אנא טען טקסט קודם');
+        return;
+      }
+      
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = 'טוען...';
+
+      showLoading('טוען הקראה...');
+
+      // Reset to start so currentIndex aligns with cached chunks
+      currentIndex = 0;
+      if (sentenceMode) currentSentence = 0;
+      renderText();
+
+      await pregenerateTTS();
+      
+      hideLoading();
+      btn.disabled = false;
+      btn.textContent = ttsCache.size > 0 ? 'נטען ✓ (' + ttsCache.size + ')' : 'טען הקראה';
+    });
+
+    // TTS Full mode toggle
+    document.getElementById('ttsFullToggle').addEventListener('click', function() {
+      ttsFullMode = !ttsFullMode;
+      this.classList.toggle('active', ttsFullMode);
+      // Clear cache when mode changes
+      if (ttsCache.size > 0) {
+        clearTTSCache();
+        document.getElementById('ttsLoadBtn').textContent = 'טען מחדש';
+        log('[TTS] Cache cleared - mode changed', 'w');
+      }
+      // Re-render to update highlighting state
+      if (words.length > 0) renderText();
+    });
+
+    // TTS Speed menu
+    document.getElementById('ttsSpeedBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.getElementById('ttsSpeedMenu').classList.toggle('open');
+    });
+    document.querySelectorAll('.tts-speed-option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        const speed = parseFloat(this.dataset.speed);
+        ttsPlaybackRate = speed;
+        localStorage.setItem('reading-pacer-tts-speed', speed);
+        document.getElementById('ttsSpeedBtn').textContent = this.textContent;
+        document.querySelectorAll('.tts-speed-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        document.getElementById('ttsSpeedMenu').classList.remove('open');
+        // Invalidate cache - speed affects generation
+        if (ttsCache.size > 0) {
+          clearTTSCache();
+          document.getElementById('ttsLoadBtn').textContent = 'טען מחדש';
+          log('[TTS] Cache cleared - speed changed', 'w');
+        }
+      });
+    });
+    // Close menu when clicking outside
+    document.addEventListener('click', function() {
+      document.getElementById('ttsSpeedMenu').classList.remove('open');
+    });
+    // Initialize speed button text from saved value
+    const savedSpeed = localStorage.getItem('reading-pacer-tts-speed');
+    if (savedSpeed) {
+      document.getElementById('ttsSpeedBtn').textContent = savedSpeed + 'x';
+      document.querySelectorAll('.tts-speed-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.speed === savedSpeed);
+      });
+    }
 
     // VN Mode toggle
     document.getElementById('vnModeOn').addEventListener('click', function() {
@@ -4763,13 +5308,13 @@
       if (vnMode && words.length > 0) renderText();
     });
 
-    // VN Border toggle
+    // Sentence Border toggle
     document.getElementById('vnBorderOn').addEventListener('click', function() {
       document.getElementById('vnBorderOff').classList.remove('active');
       this.classList.add('active');
       vnBorder = true;
       localStorage.setItem('reading-pacer-vnborder', 'true');
-      if (vnMode && words.length > 0) drawVnBorder();
+      if (words.length > 0) drawVnBorder();
     });
     document.getElementById('vnBorderOff').addEventListener('click', function() {
       document.getElementById('vnBorderOn').classList.remove('active');
@@ -4777,6 +5322,29 @@
       vnBorder = false;
       localStorage.setItem('reading-pacer-vnborder', 'false');
       drawVnBorder(); // Will hide the SVG
+    });
+
+    // Sentence Border color
+    document.getElementById('borderColor').addEventListener('input', function() {
+      borderColor = this.value;
+      localStorage.setItem('reading-pacer-border-color', this.value);
+      document.documentElement.style.setProperty('--border-color', this.value);
+    });
+
+    // Sentence Border opacity
+    document.getElementById('borderOpacity').addEventListener('input', function() {
+      borderOpacity = parseInt(this.value);
+      document.getElementById('borderOpacityValue').textContent = this.value + '%';
+      localStorage.setItem('reading-pacer-border-opacity', this.value);
+      document.documentElement.style.setProperty('--border-opacity', this.value / 100);
+    });
+
+    // Sentence Border width
+    document.getElementById('borderWidth').addEventListener('input', function() {
+      borderWidth = parseInt(this.value);
+      document.getElementById('borderWidthValue').textContent = this.value + 'px';
+      localStorage.setItem('reading-pacer-border-width', this.value);
+      document.documentElement.style.setProperty('--border-width', this.value);
     });
 
     // Half-bold mode toggle (הדגשת חצי)
@@ -4894,6 +5462,8 @@
       document.getElementById('rsvpFontSizeValue').textContent = this.value + '%';
       localStorage.setItem('reading-pacer-rsvp-fontsize', this.value);
       document.documentElement.style.setProperty('--rsvp-font-size', (this.value / 100) + 'em');
+      redicleUpdateCount = 2;
+      if (rsvpMode && words.length > 0) renderRSVP();
     });
 
     // RSVP grid toggle
@@ -4925,6 +5495,7 @@
       rsvpTextHeight = parseInt(this.value);
       document.getElementById('rsvpTextHeightValue').textContent = this.value + '%';
       localStorage.setItem('reading-pacer-rsvp-text-height', this.value);
+      redicleUpdateCount = 2;
       if (rsvpMode && words.length > 0) renderRSVP();
     });
 
@@ -4933,12 +5504,14 @@
       rsvpTextPosition = parseInt(this.value);
       document.getElementById('rsvpTextPositionValue').textContent = this.value + '%';
       localStorage.setItem('reading-pacer-rsvp-text-position', this.value);
+      redicleUpdateCount = 2;
       if (rsvpMode && words.length > 0) renderRSVP();
     });
 
     // RSVP ORP (Spritz) mode toggle
     document.getElementById('rsvpOrpOn').addEventListener('click', function() {
       rsvpOrpMode = true;
+      redicleUpdateCount = 2;
       localStorage.setItem('reading-pacer-rsvp-orp', 'true');
       document.getElementById('rsvpOrpOn').classList.add('active');
       document.getElementById('rsvpOrpOff').classList.remove('active');
@@ -5016,11 +5589,321 @@
     let audioReady = false;
     let metronomeEnabled = localStorage.getItem('reading-pacer-metronome') !== 'false';
 
+    // TTS (Text-to-Speech) state - uses local edge-tts server
+    let ttsEnabled = localStorage.getItem('reading-pacer-tts') === 'true';
+
+    // TTS initialization (uses local edge-tts server on port 5111)
+    function initTTS() {
+      // Check if TTS server is available
+      fetch('http://127.0.0.1:5111/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'test' })
+      })
+      .then(() => log('TTS: server connected (edge-tts)', 'i'))
+      .catch(() => log('TTS: server not running - launch with ./launch.sh', 'w'));
+    }
+
+    // TTS audio system with pre-generation using Web Audio API for zero latency
+    let ttsCache = new Map();  // text -> AudioBuffer
+    let ttsGenerating = false;
+    let ttsCancelled = false;
+    let ttsGenerationProgress = 0;
+    let ttsTotalChunks = 0;
+    let ttsCurrentSource = null;  // Current playing BufferSource
+    let ttsPlaybackRate = parseFloat(localStorage.getItem('reading-pacer-tts-speed')) || 1;
+    let ttsFullMode = false;
+
+    // Get TTS rate string from user-selected speed (e.g. 1.5 -> "+50%")
+    function calculateTTSRate() {
+      const ratePercent = Math.round((ttsPlaybackRate - 1) * 100);
+      return ratePercent >= 0 ? `+${ratePercent}%` : `${ratePercent}%`;
+    }
+
+    // Calculate and show recommended TTS speed based on WPM and chunk size
+    function updateRecommendedSpeed() {
+      const timePerChunk = (chunkSize / wpm) * 60;
+      const estimatedSpeakTime = chunkSize * 0.40; // ~0.40s per Hebrew word
+      const speedMultiplier = estimatedSpeakTime / timePerChunk;
+      const recommended = Math.max(0.5, Math.min(4, speedMultiplier));
+      const el = document.getElementById('ttsSpeedRec');
+      if (el) el.textContent = 'מומלץ: ' + recommended.toFixed(1) + 'x';
+    }
+
+    // Get text for a specific chunk index
+    function getChunkText(startIdx) {
+      let chunkEnd;
+      if (sentenceMode) {
+        const sentIdx = sentences.findIndex(s => startIdx >= s.startIdx && startIdx < s.endIdx);
+        if (sentIdx < 0) return '';
+        const lastSentIdx = Math.min(sentIdx + chunkSize - 1, sentences.length - 1);
+        const lastSent = sentences[lastSentIdx];
+        chunkEnd = lastSent ? lastSent.endIdx : words.length;
+      } else {
+        chunkEnd = Math.min(startIdx + chunkSize, words.length);
+      }
+      const chunkWords = words.slice(startIdx, chunkEnd)
+        .filter(w => !w.isLine && !w.isParagraph)
+        .map(w => typeof w === 'string' ? w : (w.text || w.word || String(w)));
+      return chunkWords.join(' ').trim();
+    }
+
+    // Get all chunk indices (simulating actual playback traversal with skipBreaks)
+    function getAllChunkIndices() {
+      const indices = [];
+      if (sentenceMode) {
+        for (let i = 0; i < sentences.length; i += chunkSize) {
+          indices.push(sentences[i].startIdx);
+        }
+      } else {
+        // Simulate actual nextChunk() traversal which uses skipBreaks
+        let idx = 0;
+        while (idx < words.length) {
+          indices.push(idx);
+          idx = skipBreaks(idx + chunkSize, 1);
+          // Prevent infinite loop if skipBreaks returns same index
+          if (indices.length > 0 && idx <= indices[indices.length - 1]) break;
+        }
+      }
+      return indices;
+    }
+
+    // Pre-generate all TTS audio for current text
+    async function pregenerateTTS() {
+      if (!ttsEnabled || ttsGenerating || words.length === 0) return;
+      
+      // Ensure audioCtx is initialized (same as metronome uses)
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+          latencyHint: 'interactive',
+          sampleRate: 44100
+        });
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      
+      ttsGenerating = true;
+      ttsCache.clear();
+      
+      const rate = calculateTTSRate();
+      const TTS_PORTS = [5111, 5112, 5113, 5114, 5115];
+      
+      if (ttsFullMode) {
+        // Full mode: generate one audio for entire text
+        const fullText = words
+          .filter(w => !w.isLine && !w.isParagraph)
+          .map(w => typeof w === 'string' ? w : (w.text || w.word || String(w)))
+          .join(' ').trim();
+        
+        ttsTotalChunks = 1;
+        ttsGenerationProgress = 0;
+        log('TTS: Generating full page audio...', 'i');
+        updateTTSProgress();
+        
+        try {
+          const response = await fetch(`http://127.0.0.1:${TTS_PORTS[0]}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: fullText, rate })
+          });
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            ttsCache.set('__FULL__', audioBuffer);
+          }
+        } catch (e) {
+          log('TTS gen error: ' + e.message, 'e');
+        }
+        ttsGenerationProgress = 1;
+        updateTTSProgress();
+      } else {
+        // Normal mode: generate per chunk
+        const indices = getAllChunkIndices();
+        ttsTotalChunks = indices.length;
+        ttsGenerationProgress = 0;
+        
+        log('TTS: Pre-generating ' + ttsTotalChunks + ' chunks...', 'i');
+        updateTTSProgress();
+        
+        const promises = indices.map(async (idx, i) => {
+          const text = getChunkText(idx);
+          if (!text) return;
+          
+          const port = TTS_PORTS[i % TTS_PORTS.length];
+          
+          try {
+            const response = await fetch(`http://127.0.0.1:${port}/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text, rate })
+            });
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+              ttsCache.set(text, audioBuffer);
+            }
+          } catch (e) {
+            log('TTS gen error port ' + port + ': ' + e.message, 'e');
+          }
+          
+          ttsGenerationProgress++;
+          updateTTSProgress();
+        });
+        
+        await Promise.all(promises);
+      }
+      
+      ttsGenerating = false;
+      log('TTS: Ready! ' + ttsCache.size + ' chunks cached', 'i');
+      updateTTSProgress();
+      
+      // Re-render to show plain text in full mode
+      if (ttsFullMode) {
+        renderText();
+      }
+    }
+
+    // Update progress indicator
+    function updateTTSProgress() {
+      const loadBtn = document.getElementById('ttsLoadBtn');
+      const loadingEl = document.getElementById('loadingText');
+      if (!loadBtn) return;
+      
+      const pct = Math.round((ttsGenerationProgress / ttsTotalChunks) * 100);
+      
+      if (ttsGenerating) {
+        if (ttsFullMode) {
+          loadBtn.textContent = 'טוען...';
+          if (loadingEl) loadingEl.textContent = 'טוען הקראה מלאה...';
+        } else {
+          loadBtn.textContent = 'טוען ' + pct + '%';
+          if (loadingEl) loadingEl.textContent = 'טוען הקראה... ' + pct + '%';
+        }
+      }
+    }
+
+    // Speak the current chunk (instant from cache via Web Audio API)
+    let ttsFullPlaying = false;  // Track if full mode audio is already playing
+    
+    function speakChunk() {
+      if (!ttsEnabled) return;
+      if (ttsCache.size === 0) return;  // No loaded audio
+      
+      // Full mode: play entire audio once, ignore chunk calls
+      if (ttsFullMode) {
+        if (ttsFullPlaying) return;  // Already playing
+        if (ttsCache.has('__FULL__')) {
+          log('[TTS] Playing full page audio', 'i');
+          ttsFullPlaying = true;
+          playTTSBuffer(ttsCache.get('__FULL__'));
+        }
+        return;
+      }
+      
+      // Use currentIndex directly - must match pre-generation indices
+      const text = getChunkText(currentIndex);
+      if (!text) return;
+      
+      log('[TTS] idx=' + currentIndex + ' cache:' + ttsCache.has(text), 'i');
+      
+      // Stop previous audio
+      if (ttsCurrentSource) {
+        try { ttsCurrentSource.stop(); } catch(e) {}
+        ttsCurrentSource = null;
+      }
+      
+      if (ttsCache.has(text)) {
+        // Cache hit - play instantly via Web Audio API
+        log('[TTS] CACHE HIT', 'i');
+        playTTSBuffer(ttsCache.get(text));
+      } else if (!ttsGenerating) {
+        log('[TTS] CACHE MISS - fetching', 'w');
+        // Cache miss - generate on demand as fallback
+        fetch('http://127.0.0.1:5111/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, rate: calculateTTSRate() })
+        })
+        .then(r => r.arrayBuffer())
+        .then(arrayBuffer => audioCtx.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+          ttsCache.set(text, audioBuffer);
+          playTTSBuffer(audioBuffer);
+        })
+        .catch(() => {});
+      }
+    }
+    
+    // Play AudioBuffer via Web Audio API (zero latency, silence trimmed)
+    async function playTTSBuffer(buffer) {
+      log('[TTS] play buffer ' + buffer.duration.toFixed(3) + 's', 'i');
+      
+      if (!audioCtx) {
+        log('[TTS] ERROR: audioCtx null!', 'e');
+        return;
+      }
+      if (audioCtx.state === 'suspended') {
+        log('[TTS] resuming audioCtx...', 'i');
+        await audioCtx.resume();
+        log('[TTS] resumed: ' + audioCtx.state, 'i');
+      }
+      
+      // Find where actual audio starts (skip leading silence)
+      const channelData = buffer.getChannelData(0);
+      const threshold = 0.05;
+      let startSample = 0;
+      
+      for (let i = 0; i < channelData.length - 100; i++) {
+        if (Math.abs(channelData[i]) > threshold) {
+          startSample = Math.max(0, i - 200);
+          break;
+        }
+      }
+      
+      const startOffset = startSample / buffer.sampleRate;
+      log('[TTS] trim: ' + startOffset.toFixed(3) + 's', 'i');
+      console.log('[TTS] Silence trimmed:', startOffset.toFixed(3) + 's, playing now');
+      
+      ttsCurrentSource = audioCtx.createBufferSource();
+      ttsCurrentSource.buffer = buffer;
+      ttsCurrentSource.connect(audioCtx.destination);
+      ttsCurrentSource.onended = () => { log('[TTS] audio ended', 'i'); ttsFullPlaying = false; };
+      log('[TTS] STARTING audio now, offset=' + startOffset.toFixed(3), 'i');
+      ttsCurrentSource.start(0, startOffset);
+    }
+
+    // Stop TTS
+    function stopTTS() {
+      if (ttsCurrentSource) {
+        try { ttsCurrentSource.stop(); } catch(e) {}
+        ttsCurrentSource = null;
+      }
+    }
+
+    // Clear TTS cache (call when text changes)
+    function clearTTSCache() {
+      ttsCache.clear();
+      ttsGenerationProgress = 0;
+      ttsFullPlaying = false;
+    }
+
+    // Initialize TTS on load
+    initTTS();
+
     // Restore metronome toggle UI state
     if (!metronomeEnabled) {
       document.getElementById('metronomeOn').classList.remove('active');
       document.getElementById('metronomeOff').classList.add('active');
     }
+
+    // Restore TTS toggle UI state
+    if (ttsEnabled) {
+      document.getElementById('ttsOff').classList.remove('active');
+      document.getElementById('ttsOn').classList.add('active');
+      document.querySelector('.tts-controls').style.display = 'flex';
+    }
+    updateRecommendedSpeed();
 
     // Restore VN mode toggle UI state
     if (vnMode) {
@@ -5037,10 +5920,25 @@
     document.getElementById('settingsVnSentenceBuffer').value = vnSentenceBuffer;
     document.getElementById('vnSentenceBufferValue').textContent = vnSentenceBuffer;
 
-    // Restore VN border toggle
+    // Restore sentence border settings
     if (vnBorder) {
       document.getElementById('vnBorderOff').classList.remove('active');
       document.getElementById('vnBorderOn').classList.add('active');
+    }
+    document.getElementById('borderColor').value = borderColor;
+    document.documentElement.style.setProperty('--border-color', borderColor);
+    document.getElementById('borderOpacity').value = borderOpacity;
+    document.getElementById('borderOpacityValue').textContent = borderOpacity + '%';
+    document.documentElement.style.setProperty('--border-opacity', borderOpacity / 100);
+    document.getElementById('borderWidth').value = borderWidth;
+    document.getElementById('borderWidthValue').textContent = borderWidth + 'px';
+    document.documentElement.style.setProperty('--border-width', borderWidth);
+
+    // Restore continuous highlight setting
+    if (highlightContinuous) {
+      document.getElementById('highlightContinuousOff').classList.remove('active');
+      document.getElementById('highlightContinuousOn').classList.add('active');
+      document.getElementById('textDisplay').classList.add('highlight-continuous');
     }
 
     // Restore half-bold mode settings (הדגשת חצי)
@@ -5108,7 +6006,7 @@
     // Update VN border on scroll
     let vnBorderScrollTimeout;
     window.addEventListener('scroll', function() {
-      if (vnBorder && vnMode) {
+      if (vnBorder) {
         clearTimeout(vnBorderScrollTimeout);
         vnBorderScrollTimeout = setTimeout(drawVnBorder, 16); // ~60fps throttle
       }
@@ -5586,7 +6484,7 @@
     // Sync JS variables from input values (respects browser cache)
     chunkSize = parseInt(document.getElementById('chunkSizeInput').value) || 1;
     wpm = parseInt(document.getElementById('wpmInput').value) || 200;
-    scrollTolerance = parseInt(document.getElementById('scrollToleranceInput').value) || 20;
+    // scrollTolerance restored from localStorage
     document.getElementById('chunkSize').value = chunkSize;
     document.getElementById('wpm').value = wpm;
 
@@ -5665,6 +6563,7 @@
       originalNextChunk();
       saveState();
       playWordSound();
+      speakChunk();
     };
 
     const originalPrevChunk = prevChunk;
@@ -5672,6 +6571,7 @@
       originalPrevChunk();
       saveState();
       playWordSound();
+      speakChunk();
     };
 
     const originalGoToPage = goToPage;
@@ -5685,6 +6585,7 @@
       originalSetPosition(idx);
       saveState();
       playWordSound();
+      speakChunk();
     };
 
     // ============================================
@@ -6098,11 +6999,20 @@
       }
     });
 
-    // Close lightbox on Escape
+    // Close lightbox on Escape, cancel TTS loading
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Escape') {
         closeLightbox();
         closeFiguresPanel();
+        // Cancel TTS loading
+        if (ttsGenerating) {
+          ttsCancelled = true;
+          ttsGenerating = false;
+          hideLoading();
+          document.getElementById('ttsLoadBtn').disabled = false;
+          document.getElementById('ttsLoadBtn').textContent = 'טען';
+          log('[TTS] Generation cancelled', 'w');
+        }
       }
     });
 
